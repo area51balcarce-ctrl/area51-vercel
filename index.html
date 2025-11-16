@@ -44,7 +44,6 @@
         box-shadow:0 0 5px rgba(0,230,118,0.6);
     }
 
-    /* Firma táctil */
     #signature-pad { 
         border:2px solid #000; 
         width:100%; 
@@ -168,7 +167,7 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// MODELOS según tipo de equipo
+// MODELOS
 function mostrarModelos(){
     let equipo = document.getElementById("equipo").value;
     let modelo = document.getElementById("modelo");
@@ -176,30 +175,10 @@ function mostrarModelos(){
 
     modelo.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    if (equipo === "PLAYSTATION 4") {
+    if(equipo){
         div.style.display="block";
+        // Para ahora, dejamos modelos genéricos
         ["FAT","SLIM","PRO"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "PLAYSTATION 5") {
-        div.style.display="block";
-        ["EDICIÓN FÍSICA","DIGITAL"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "XBOX SERIES X") {
-        div.style.display="block";
-        ["SERIES X"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "XBOX SERIES S") {
-        div.style.display="block";
-        ["SERIES S"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "XBOX ONE X") {
-        div.style.display="block";
-        ["ONE X"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "XBOX ONE") {
-        div.style.display="block";
-        ["ONE","ONE S"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "GABINETE") {
-        div.style.display="block";
-        ["GAMER","OFICINA"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
-    } else if (equipo === "NOTEBOOK") {
-        div.style.display="block";
-        ["GAMER","OFICINA"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
     } else {
         div.style.display="none";
     }
@@ -231,6 +210,7 @@ function getPos(e){
 canvas.addEventListener("mousedown", e=>{
     dibujando = true;
     const p = getPos(e);
+    ctx.beginPath();
     ctx.moveTo(p.x, p.y);
 });
 
@@ -249,6 +229,7 @@ canvas.addEventListener("touchstart", e=>{
     e.preventDefault();
     dibujando = true;
     const p = getPos(e);
+    ctx.beginPath();
     ctx.moveTo(p.x, p.y);
 });
 
@@ -284,31 +265,16 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// Enviar PDF al servidor (Vercel API)
-async function enviarPDFServidor(payload) {
-  const resp = await fetch('/api/sendEmail', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!resp.ok) {
-    throw new Error('Error en la API de email');
-  }
-}
-
 // WHATSAPP + PDF + EMAIL
 async function enviarWhatsApp(){
     const resumen = generarResumen();
 
-    // 1) Abrir WhatsApp con el resumen
+    // 1) WhatsApp
     window.open(
         `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
     );
 
-    // 2) Generar PDF con todo + firma y:
-    //    - descargarlo en el dispositivo del cliente
-    //    - enviarlo al mail del local
+    // 2) PDF completo con todo + firma
     const firma = canvas.toDataURL("image/png");
     const fechaNombre = fechaTexto.replace(/\//g,"-");
 
@@ -358,12 +324,23 @@ async function enviarWhatsApp(){
     };
 
     try {
-        html2pdf().set(opt).from(html).toPdf().get('pdf').then(async (pdf) => {
-            const pdfDataUri = pdf.output('datauristring');
-            const pdfBase64  = pdfDataUri.split(',')[1];
+        // 2a) Generar PDF en base64 para enviar por mail
+        const dataUri = await html2pdf()
+            .set(opt)
+            .from(html)
+            .toPdf()
+            .output('datauristring');
 
-            // Enviar al servidor (Vercel → Resend)
-            await enviarPDFServidor({
+        const pdfBase64 = dataUri.split(',')[1];
+
+        // 2b) Descargar el PDF en el dispositivo del cliente
+        html2pdf().set(opt).from(html).save();
+
+        // 3) Enviar al backend (Vercel) para mandar el correo
+        await fetch("/api/sendEmail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
                 nombre: nombre.value,
                 telefono: telefono.value,
                 equipo: equipo.value,
@@ -371,17 +348,20 @@ async function enviarWhatsApp(){
                 problema: problema.value,
                 detalle: detalle.value,
                 estado: estado.value,
-                calcosDecision: calcosDecision?.value || '',
+                calcosDecision: calcosDecision?.value || "N/A",
                 fecha: fechaTexto,
-                pdfBase64,
-            });
-        }).save(); // descarga el PDF al cliente
+                pdfBase64
+            })
+        });
+
+        alert("Orden creada: PDF descargado y enviado a AREA 51.");
     } catch (err) {
         console.error(err);
-        alert("Se generó el PDF pero hubo un problema al enviarlo por mail. Avisanos en el local.");
+        alert("Se generó el PDF, pero hubo un error al enviarlo por correo.");
     }
 }
 </script>
 
 </body>
 </html>
+
