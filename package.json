@@ -1,0 +1,13 @@
+{
+  "name": "area51-orden-servicio",
+  "version": "1.0.0",
+  "description": "Formulario AREA 51 con firma, PDF y envío de email",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "resend": "latest"
+  }
+}

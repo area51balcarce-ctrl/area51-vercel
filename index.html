@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AREA 51 - Orden de Servicio</title>
+<style>
+    body { 
+        font-family: Arial, sans-serif; 
+        background: radial-gradient(circle at top, #2c0044, #05010a); 
+        padding:20px;
+    }
+    .container { 
+        max-width:600px; 
+        margin:auto; 
+        background:white; 
+        padding:20px; 
+        border-radius:16px; 
+        box-shadow:0 0 25px rgba(0,255,150,0.25);
+        border:1px solid rgba(0,255,150,0.25);
+    }
+    .header {
+        display:flex;
+        align-items:center;
+        gap:12px;
+        margin-bottom:10px;
+    }
+    .header img {
+        width:60px;
+        height:60px;
+        object-fit:contain;
+        border-radius:6px;
+    }
+    h2 { margin:0; font-size:20px; }
+    #fecha { font-size:14px; margin-top:4px; color:#555; font-weight:bold; }
+    label { font-weight:bold; margin-top:10px; display:block; color:#222; }
+    input, select, textarea { 
+        width:100%; padding:10px; margin-top:5px;
+        border-radius:6px; border:1px solid #bbb; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline:none;
+        border-color:#00e676;
+        box-shadow:0 0 5px rgba(0,230,118,0.6);
+    }
+
+    /* Firma táctil */
+    #signature-pad { 
+        border:2px solid #000; 
+        width:100%; 
+        height:200px; 
+        border-radius:8px; 
+        background:white;
+        touch-action: none;
+    }
+
+    .btn { 
+        display:block; background:linear-gradient(90deg,#00e676,#25D366);
+        color:white; padding:14px; text-align:center;
+        font-size:18px; margin-top:20px; border-radius:8px; text-decoration:none;
+        border:none; box-shadow:0 0 12px rgba(0,230,118,0.7); cursor:pointer;
+    }
+    .btn:hover { filter:brightness(1.05); }
+
+    .condiciones { 
+        background:#fff3cd; padding:15px; border-radius:8px; 
+        border:1px solid #e6c882; margin-top:15px; font-size:13px;
+    }
+    .condiciones h3 { text-align:center; margin-top:0; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <img src="https://i.imgur.com/qW3bMA7.jpeg" alt="Logo AREA 51">
+        <div>
+            <h2>AREA 51 - Orden de Servicio</h2>
+            <div id="fecha"></div>
+        </div>
+    </div>
+
+    <label>Nombre Completo</label>
+    <input id="nombre" type="text" />
+
+    <label>Teléfono / Contacto</label>
+    <input id="telefono" type="text" />
+
+    <label>Tipo de Equipo</label>
+    <select id="equipo" onchange="mostrarModelos()">
+        <option value="">Seleccionar...</option>
+        <option value="PLAYSTATION 4">PLAYSTATION 4</option>
+        <option value="PLAYSTATION 5">PLAYSTATION 5</option>
+        <option value="XBOX SERIES X">XBOX SERIES X</option>
+        <option value="XBOX SERIES S">XBOX SERIES S</option>
+        <option value="XBOX ONE X">XBOX ONE X</option>
+        <option value="XBOX ONE">XBOX ONE</option>
+        <option value="GABINETE">GABINETE</option>
+        <option value="NOTEBOOK">NOTEBOOK</option>
+    </select>
+
+    <div id="modelos" style="display:none;">
+        <label>Modelo del Equipo</label>
+        <select id="modelo">
+            <option value="">Seleccionar...</option>
+        </select>
+    </div>
+
+    <label>Problema</label>
+    <select id="problema">
+        <option>No enciende</option>
+        <option>Luz/Error específico</option>
+        <option>Sobrecalentamiento / Limpieza</option>
+        <option>Problema de lectura de discos</option>
+        <option>Otro</option>
+    </select>
+
+    <label>Descripción del Problema</label>
+    <textarea id="detalle"></textarea>
+
+    <label>Estado físico del equipo al recibir</label>
+    <select id="estado" onchange="mostrarCalcos()">
+        <option>Buen estado general</option>
+        <option>Rayones visibles</option>
+        <option>Marcas de apertura / Manipulación previa</option>
+        <option>Roto / Golpeado</option>
+        <option>Calcomanías</option>
+    </select>
+
+    <div id="calcosOpciones" style="display:none; margin-top:10px;">
+        <label>¿Qué desea hacer con las calcomanías?</label>
+        <select id="calcosDecision">
+            <option value="">Seleccionar...</option>
+            <option>Deseo mantenerlas</option>
+            <option>No deseo mantenerlas</option>
+        </select>
+    </div>
+
+    <div class="condiciones">
+        <h3>Condiciones del Servicio Técnico</h3>
+        1) El equipo se recibe para diagnóstico. Se notificará el costo total antes de proceder.<br>
+        2) AREA 51 no se hace responsable por fallas preexistentes o no reportadas.<br>
+        3) Plazo de 30 días para retirar el equipo una vez finalizado el trabajo.<br>
+        4) Equipos con daños por líquidos/golpes/manipulación previa sin garantía de éxito.<br>
+        5) La limpieza incluye remoción de polvo y cambio de pasta térmica cuando corresponda.<br>
+        6) Repuestos con garantía solo por defectos de fábrica.<br>
+        7) Los datos/partidas guardadas son responsabilidad del cliente.<br>
+        8) Se notificará si faltan accesorios necesarios para pruebas.<br>
+        9) Los plazos de reparación son estimados.<br>
+        10) Con la firma, el cliente acepta estas condiciones.
+    </div>
+
+    <label>Firma del Cliente</label>
+    <canvas id="signature-pad"></canvas>
+    <button onclick="limpiarFirma()">Borrar Firma</button>
+
+    <button class="btn" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+</div>
+
+<!-- Librería para generar PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+<script>
+// FECHA
+const fechaDiv = document.getElementById("fecha");
+let hoy = new Date();
+let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
+let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
+fechaDiv.innerText = "Fecha: " + fechaTexto;
+
+// MODELOS según tipo de equipo
+function mostrarModelos(){
+    let equipo = document.getElementById("equipo").value;
+    let modelo = document.getElementById("modelo");
+    let div = document.getElementById("modelos");
+
+    modelo.innerHTML = "<option value=''>Seleccionar...</option>";
+
+    if (equipo === "PLAYSTATION 4") {
+        div.style.display="block";
+        ["FAT","SLIM","PRO"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "PLAYSTATION 5") {
+        div.style.display="block";
+        ["EDICIÓN FÍSICA","DIGITAL"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "XBOX SERIES X") {
+        div.style.display="block";
+        ["SERIES X"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "XBOX SERIES S") {
+        div.style.display="block";
+        ["SERIES S"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "XBOX ONE X") {
+        div.style.display="block";
+        ["ONE X"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "XBOX ONE") {
+        div.style.display="block";
+        ["ONE","ONE S"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "GABINETE") {
+        div.style.display="block";
+        ["GAMER","OFICINA"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else if (equipo === "NOTEBOOK") {
+        div.style.display="block";
+        ["GAMER","OFICINA"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    } else {
+        div.style.display="none";
+    }
+}
+
+// CALCOS
+function mostrarCalcos(){
+    let estado = document.getElementById("estado").value;
+    document.getElementById("calcosOpciones").style.display =
+        estado === "Calcomanías" ? "block" : "none";
+}
+
+/* FIRMA CON TOUCH */
+const canvas = document.getElementById("signature-pad");
+const ctx = canvas.getContext("2d");
+let dibujando = false;
+
+function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    if(e.touches){
+        return {
+            x: e.touches[0].clientX - rect.left,
+            y: e.touches[0].clientY - rect.top
+        };
+    }
+    return { x: e.offsetX, y: e.offsetY };
+}
+
+canvas.addEventListener("mousedown", e=>{
+    dibujando = true;
+    const p = getPos(e);
+    ctx.moveTo(p.x, p.y);
+});
+
+canvas.addEventListener("mousemove", e=>{
+    if(!dibujando) return;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+});
+
+canvas.addEventListener("mouseup", ()=> dibujando=false);
+canvas.addEventListener("mouseleave", ()=> dibujando=false);
+
+// TOUCH
+canvas.addEventListener("touchstart", e=>{
+    e.preventDefault();
+    dibujando = true;
+    const p = getPos(e);
+    ctx.moveTo(p.x, p.y);
+});
+
+canvas.addEventListener("touchmove", e=>{
+    e.preventDefault();
+    if(!dibujando) return;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+});
+
+canvas.addEventListener("touchend", ()=> dibujando=false);
+
+function limpiarFirma(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+// Resumen para WhatsApp
+function generarResumen(){
+    return `AREA 51 - ORDEN DE SERVICIO
+Fecha: ${fechaTexto}
+
+Nombre: ${nombre.value}
+Teléfono: ${telefono.value}
+
+Equipo: ${equipo.value} ${modelo.value}
+Problema: ${problema.value}
+Detalle: ${detalle.value}
+
+Estado físico: ${estado.value}
+Calcomanías: ${calcosDecision?.value || "N/A"}
+
+Condiciones aceptadas.`;
+}
+
+// Enviar PDF al servidor (Vercel API)
+async function enviarPDFServidor(payload) {
+  const resp = await fetch('/api/sendEmail', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok) {
+    throw new Error('Error en la API de email');
+  }
+}
+
+// WHATSAPP + PDF + EMAIL
+async function enviarWhatsApp(){
+    const resumen = generarResumen();
+
+    // 1) Abrir WhatsApp con el resumen
+    window.open(
+        `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
+    );
+
+    // 2) Generar PDF con todo + firma y:
+    //    - descargarlo en el dispositivo del cliente
+    //    - enviarlo al mail del local
+    const firma = canvas.toDataURL("image/png");
+    const fechaNombre = fechaTexto.replace(/\//g,"-");
+
+    const html = `
+        <div style="font-family:Arial, sans-serif; font-size:12px; line-height:1.4;">
+            <h2>AREA 51 - Orden de Servicio</h2>
+            <p><strong>Fecha:</strong> ${fechaTexto}</p>
+
+            <p><strong>Nombre:</strong> ${nombre.value}</p>
+            <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
+
+            <p><strong>Tipo de equipo:</strong> ${equipo.value}</p>
+            <p><strong>Modelo del equipo:</strong> ${modelo.value}</p>
+
+            <p><strong>Problema:</strong> ${problema.value}</p>
+            <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
+
+            <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
+            <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
+
+            <hr>
+            <h3>Condiciones del Servicio Técnico</h3>
+            <ol style="padding-left:18px;">
+                <li>El equipo se recibe para diagnóstico. Se notificará el costo total antes de proceder.</li>
+                <li>AREA 51 no se hace responsable por fallas preexistentes o no reportadas.</li>
+                <li>Plazo de 30 días para retirar el equipo una vez finalizado el trabajo.</li>
+                <li>Equipos con daños por líquidos/golpes/manipulación previa sin garantía de éxito.</li>
+                <li>La limpieza incluye remoción de polvo y cambio de pasta térmica cuando corresponda.</li>
+                <li>Repuestos con garantía solo por defectos de fábrica.</li>
+                <li>Los datos/partidas guardadas son responsabilidad del cliente.</li>
+                <li>Se notificará si faltan accesorios necesarios para pruebas.</li>
+                <li>Los plazos de reparación son estimados.</li>
+                <li>Con la firma, el cliente acepta estas condiciones.</li>
+            </ol>
+
+            <p><strong>Firma del cliente:</strong></p>
+            <img src="${firma}" style="max-width:300px; border:1px solid #000;" />
+        </div>
+    `;
+
+    const opt = {
+        margin:       10,
+        filename:     `Orden_AREA51_${fechaNombre}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+        html2pdf().set(opt).from(html).toPdf().get('pdf').then(async (pdf) => {
+            const pdfDataUri = pdf.output('datauristring');
+            const pdfBase64  = pdfDataUri.split(',')[1];
+
+            // Enviar al servidor (Vercel → Resend)
+            await enviarPDFServidor({
+                nombre: nombre.value,
+                telefono: telefono.value,
+                equipo: equipo.value,
+                modelo: modelo.value,
+                problema: problema.value,
+                detalle: detalle.value,
+                estado: estado.value,
+                calcosDecision: calcosDecision?.value || '',
+                fecha: fechaTexto,
+                pdfBase64,
+            });
+        }).save(); // descarga el PDF al cliente
+    } catch (err) {
+        console.error(err);
+        alert("Se generó el PDF pero hubo un problema al enviarlo por mail. Avisanos en el local.");
+    }
+}
+</script>
+
+</body>
+</html>
