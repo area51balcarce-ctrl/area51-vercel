@@ -79,6 +79,10 @@
         </div>
     </div>
 
+    <!-- NÚMERO DE ORDEN (desde Google Sheets) -->
+    <label>Número de Orden</label>
+    <input id="orden" type="text" readonly />
+
     <label>Nombre Completo</label>
     <input id="nombre" type="text" />
 
@@ -167,6 +171,27 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
+// NÚMERO DE ORDEN DESDE /api/generateOrder
+const ordenInput = document.getElementById("orden");
+
+async function cargarNumeroOrden() {
+    try {
+        const res = await fetch("/api/generateOrder");
+        const data = await res.json();
+        if (data.orderNumber) {
+            ordenInput.value = data.orderNumber;
+        } else {
+            ordenInput.value = "A51-SIN-NUMERO";
+        }
+    } catch (err) {
+        console.error("Error obteniendo número de orden:", err);
+        ordenInput.value = "A51-ERROR";
+    }
+}
+
+// cargar al abrir la página
+cargarNumeroOrden();
+
 // MODELOS
 function mostrarModelos(){
     let equipo = document.getElementById("equipo").value;
@@ -177,7 +202,6 @@ function mostrarModelos(){
 
     if(equipo){
         div.style.display="block";
-        // Para ahora, dejamos modelos genéricos
         ["FAT","SLIM","PRO"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
     } else {
         div.style.display="none";
@@ -251,6 +275,7 @@ function limpiarFirma(){
 function generarResumen(){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
+N° de Orden: ${orden.value}
 
 Nombre: ${nombre.value}
 Teléfono: ${telefono.value}
@@ -277,11 +302,13 @@ async function enviarWhatsApp(){
     // 2) PDF completo con todo + firma
     const firma = canvas.toDataURL("image/png");
     const fechaNombre = fechaTexto.replace(/\//g,"-");
+    const numOrden = orden.value || "A51";
 
     const html = `
         <div style="font-family:Arial, sans-serif; font-size:12px; line-height:1.4;">
             <h2>AREA 51 - Orden de Servicio</h2>
             <p><strong>Fecha:</strong> ${fechaTexto}</p>
+            <p><strong>N° de Orden:</strong> ${numOrden}</p>
 
             <p><strong>Nombre:</strong> ${nombre.value}</p>
             <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
@@ -317,14 +344,13 @@ async function enviarWhatsApp(){
 
     const opt = {
         margin:       10,
-        filename:     `Orden_AREA51_${fechaNombre}.pdf`,
+        filename:     `Orden_${numOrden}_${fechaNombre}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
-        // 2a) Generar PDF en base64 para enviar por mail
         const dataUri = await html2pdf()
             .set(opt)
             .from(html)
@@ -333,14 +359,13 @@ async function enviarWhatsApp(){
 
         const pdfBase64 = dataUri.split(',')[1];
 
-        // 2b) Descargar el PDF en el dispositivo del cliente
         html2pdf().set(opt).from(html).save();
 
-        // 3) Enviar al backend (Vercel) para mandar el correo
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                orden: numOrden,
                 nombre: nombre.value,
                 telefono: telefono.value,
                 equipo: equipo.value,
@@ -354,7 +379,7 @@ async function enviarWhatsApp(){
             })
         });
 
-        alert("Orden creada: PDF descargado y enviado a AREA 51.");
+        alert(`Orden ${numOrden} creada: PDF descargado y enviado a AREA 51.`);
     } catch (err) {
         console.error(err);
         alert("Se generó el PDF, pero hubo un error al enviarlo por correo.");
@@ -364,4 +389,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
