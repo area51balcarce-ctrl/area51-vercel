@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN (desde Google Sheets) -->
+    <!-- NÚMERO DE ORDEN (desde Apps Script + Google Sheets) -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -155,9 +155,9 @@
 
     <label>Firma del Cliente</label>
     <canvas id="signature-pad"></canvas>
-    <button onclick="limpiarFirma()">Borrar Firma</button>
+    <button type="button" onclick="limpiarFirma()">Borrar Firma</button>
 
-    <button class="btn" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+    <button class="btn" type="button" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
 </div>
 
 <!-- Librería para generar PDF -->
@@ -171,12 +171,12 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// NÚMERO DE ORDEN DESDE /api/generateOrder
+// NÚMERO DE ORDEN DESDE APPS SCRIPT
 const ordenInput = document.getElementById("orden");
 
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch("/api/generateOrder");
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec");
         const data = await res.json();
         if (data.orderNumber) {
             ordenInput.value = data.orderNumber;
@@ -189,7 +189,7 @@ async function cargarNumeroOrden() {
     }
 }
 
-// cargar al abrir la página
+// cargar número de orden al abrir la página
 cargarNumeroOrden();
 
 // MODELOS
@@ -361,6 +361,7 @@ async function enviarWhatsApp(){
 
         html2pdf().set(opt).from(html).save();
 
+        // Si tenés configurado /api/sendEmail en Vercel, esto lo manda por mail también
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
