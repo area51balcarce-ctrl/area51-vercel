@@ -89,18 +89,23 @@
     <label>Teléfono / Contacto</label>
     <input id="telefono" type="text" />
 
-    <label>Tipo de Equipo</label>
-    <select id="equipo" onchange="mostrarModelos()">
-        <option value="">Seleccionar...</option>
-        <option value="PLAYSTATION 4">PLAYSTATION 4</option>
-        <option value="PLAYSTATION 5">PLAYSTATION 5</option>
-        <option value="XBOX SERIES X">XBOX SERIES X</option>
-        <option value="XBOX SERIES S">XBOX SERIES S</option>
-        <option value="XBOX ONE X">XBOX ONE X</option>
-        <option value="XBOX ONE">XBOX ONE</option>
-        <option value="GABINETE">GABINETE</option>
-        <option value="NOTEBOOK">NOTEBOOK</option>
-    </select>
+<label>Tipo de Equipo</label>
+<select id="equipo" onchange="mostrarModelos()">
+    <option value="">Seleccionar...</option>
+    <option value="PLAYSTATION 4">PLAYSTATION 4</option>
+    <option value="PLAYSTATION 5">PLAYSTATION 5</option>
+    <option value="XBOX SERIES X">XBOX SERIES X</option>
+    <option value="XBOX SERIES S">XBOX SERIES S</option>
+    <option value="XBOX ONE X">XBOX ONE X</option>
+    <option value="XBOX ONE">XBOX ONE</option>
+    <option value="GABINETE">GABINETE</option>
+    <option value="NOTEBOOK">NOTEBOOK</option>
+
+    <!-- 🔵 NUEVOS AGREGADOS -->
+    <option value="DUALSHOCK 4">DUALSHOCK 4</option>
+    <option value="DUALSENSE">DUALSENSE</option>
+</select>
+
 
     <div id="modelos" style="display:none;">
         <label>Modelo del Equipo</label>
@@ -390,4 +395,5 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
 
