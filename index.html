@@ -176,7 +176,7 @@ const ordenInput = document.getElementById("orden");
 
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec");
+        const res = await fetch("https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgjLyQ6MBuohRgn1vJ95_xIW7MyYk0YprKzfSh9OESimf__QS9eGG85y9MDmP81eE8KeWuwzlyHQwOLvuTY_fI4Mw0qtWJ4RXDvCOiNGcUV_Zs9H6rXr2GnQ0ByLXkaVvH2ZM0_Fn4Nm7p3wVpqoTuGwuvNpe4bdyJ4GN-B8ZVfi0rhGsz7yrBYMgZeQvbLKwcewMF4F-sCz-ZRgrDmz_ZUmOjj2nVr83M_zPDyaVNMOVYga4OzCh_-Ja5JuToZ4yGo-XZiWj5XJVwK1yvc8nUTSm_slg&lib=MSBKo8CN5pWSJDkAxp2eQcXvq73vH79U2");
         const data = await res.json();
         if (data.orderNumber) {
             ordenInput.value = data.orderNumber;
@@ -390,3 +390,4 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
