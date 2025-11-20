@@ -67,21 +67,7 @@
         box-shadow:0 0 12px rgba(0,230,118,0.7); 
         cursor:pointer;
     }
-    .btn-secondary {
-        display:block; 
-        background:#007bff;
-        color:white; 
-        padding:12px; 
-        text-align:center;
-        font-size:16px; 
-        margin-top:10px; 
-        border-radius:8px; 
-        text-decoration:none;
-        border:none; 
-        box-shadow:0 0 8px rgba(0,123,255,0.5); 
-        cursor:pointer;
-    }
-    .btn:hover, .btn-secondary:hover { 
+    .btn:hover { 
         filter:brightness(1.05); 
     }
 
@@ -117,9 +103,9 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN (auto, pero editable para vos) -->
+    <!-- NÚMERO DE ORDEN: AUTO DESDE APPS SCRIPT (READONLY) -->
     <label>Número de Orden</label>
-    <input id="orden" type="text" placeholder="Ej: A51-2025-11-19-0000" />
+    <input id="orden" type="text" readonly />
 
     <label>Nombre Completo</label>
     <input id="nombre" type="text" />
@@ -161,10 +147,6 @@
     <label>Descripción del Problema</label>
     <textarea id="detalle"></textarea>
 
-    <!-- NUEVO: CAMPO PRESUPUESTO SOLO PARA EL TÉCNICO -->
-    <label>Presupuesto (solo visible para el técnico)</label>
-    <textarea id="presupuesto" placeholder="Ej: Cambio de lámina conductora + mantenimiento. Total $30.000"></textarea>
-
     <label>Estado físico del equipo al recibir</label>
     <select id="estado" onchange="mostrarCalcos()">
         <option>Buen estado general</option>
@@ -201,11 +183,7 @@
     <canvas id="signature-pad"></canvas>
     <button type="button" onclick="limpiarFirma()">Borrar Firma</button>
 
-    <!-- Botón original: Orden completa (WhatsApp + PDF + Email) -->
-    <button class="btn" type="button" onclick="enviarWhatsApp()">Enviar ORDEN (WhatsApp + PDF + Email)</button>
-
-    <!-- Botón nuevo: solo presupuesto por WhatsApp -->
-    <button class="btn-secondary" type="button" onclick="enviarPresupuestoWhatsApp()">Enviar PRESUPUESTO por WhatsApp</button>
+    <button class="btn" type="button" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
 
 </div>
 
@@ -220,7 +198,7 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO), PERO EDITABLE
+// NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO)
 const ordenInput = document.getElementById("orden");
 
 async function cargarNumeroOrden() {
@@ -230,18 +208,18 @@ async function cargarNumeroOrden() {
         if (data.orderNumber) {
             ordenInput.value = data.orderNumber;
         } else {
-            ordenInput.value = "";
+            ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
         console.error("Error obteniendo número de orden:", err);
-        // vos después podés escribirlo a mano si falla
+        ordenInput.value = "A51-ERROR";
     }
 }
 
-// cargar número de orden al abrir la página (para ingresos nuevos)
+// cargar número de orden al abrir la página
 cargarNumeroOrden();
 
-// MODELOS (podés tunear más si querés)
+// MODELOS
 function mostrarModelos(){
     let equipo = document.getElementById("equipo").value;
     let modelo = document.getElementById("modelo");
@@ -320,8 +298,8 @@ function limpiarFirma(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-// Resumen para WhatsApp (ORDEN COMPLETA)
-function generarResumenOrden(){
+// Resumen para WhatsApp
+function generarResumen(){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
 N° de Orden: ${orden.value}
@@ -339,52 +317,11 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// TEXTO DE PRESUPUESTO PARA WHATSAPP (MODO TÉCNICO)
-function generarPresupuestoTexto() {
-    const numOrden = orden.value || "(sin número)";
-    const equipoTxt = equipo.value || "";
-    const detalleTxt = detalle.value || "";
-    const presupuestoTxt = presupuesto.value || "";
-
-    return `
-AREA 51 – Presupuesto de reparación
-
-N° de Orden: ${numOrden}
-Equipo: ${equipoTxt}
-
-🔧 Diagnóstico del equipo:
-${detalleTxt}
-
-🛠 Trabajo a realizar:
-${presupuestoTxt}
-
-💰 Costo total del servicio:
-(Incluido en el detalle de presupuesto)
-
-⏳ Tiempo estimado de entrega:
-A confirmar según disponibilidad.
-
-📌 Nota:
-No se realizará ningún cargo adicional sin autorización previa del cliente.
-La garantía cubre únicamente defectos de la reparación realizada.
-
-A disposición por cualquier consulta.
-`;
-}
-
-// BOTÓN NUEVO: SOLO PRESUPUESTO POR WHATSAPP
-function enviarPresupuestoWhatsApp() {
-    const texto = generarPresupuestoTexto();
-    window.open(
-        `https://wa.me/5492266464931?text=${encodeURIComponent(texto)}`
-    );
-}
-
-// WHATSAPP + PDF + EMAIL (ORDEN COMPLETA)
+// WHATSAPP + PDF + EMAIL
 async function enviarWhatsApp(){
-    const resumen = generarResumenOrden();
+    const resumen = generarResumen();
 
-    // 1) WhatsApp con resumen de ORDEN (ingreso)
+    // 1) WhatsApp
     window.open(
         `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
     );
@@ -408,8 +345,6 @@ async function enviarWhatsApp(){
 
             <p><strong>Problema:</strong> ${problema.value}</p>
             <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
-
-            <p><strong>Presupuesto (técnico):</strong><br>${presupuesto.value}</p>
 
             <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
             <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
@@ -451,7 +386,7 @@ async function enviarWhatsApp(){
 
         const pdfBase64 = dataUri.split(',')[1];
 
-        // Descargar el PDF en el dispositivo del cliente/tuyo
+        // Descargar el PDF
         html2pdf().set(opt).from(html).save();
 
         // Enviar al backend (Vercel) para mandar el correo
@@ -466,7 +401,6 @@ async function enviarWhatsApp(){
                 modelo: modelo.value,
                 problema: problema.value,
                 detalle: detalle.value,
-                presupuesto: presupuesto.value,
                 estado: estado.value,
                 calcosDecision: calcosDecision?.value || "N/A",
                 fecha: fechaTexto,
