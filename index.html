@@ -191,6 +191,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
+// 🔗 URL de tu Apps Script (la misma que usaste antes)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
+
 // FECHA
 const fechaDiv = document.getElementById("fecha");
 let hoy = new Date();
@@ -203,7 +206,7 @@ const ordenInput = document.getElementById("orden");
 
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec");
+        const res = await fetch(SCRIPT_URL);
         const data = await res.json();
         if (data.orderNumber) {
             ordenInput.value = data.orderNumber;
@@ -317,11 +320,11 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL
+// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS
 async function enviarWhatsApp(){
     const resumen = generarResumen();
 
-    // 1) WhatsApp
+    // 1) WhatsApp al cliente
     window.open(
         `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
     );
@@ -378,6 +381,7 @@ async function enviarWhatsApp(){
     };
 
     try {
+        // Generar PDF en base64 para mail
         const dataUri = await html2pdf()
             .set(opt)
             .from(html)
@@ -386,10 +390,10 @@ async function enviarWhatsApp(){
 
         const pdfBase64 = dataUri.split(',')[1];
 
-        // Descargar el PDF
+        // 2a) Descargar el PDF en el dispositivo
         html2pdf().set(opt).from(html).save();
 
-        // Enviar al backend (Vercel) para mandar el correo
+        // 2b) Enviar al backend (Vercel) para mandar el correo
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -408,10 +412,28 @@ async function enviarWhatsApp(){
             })
         });
 
-        alert(`Orden ${numOrden} creada: PDF descargado y enviado a AREA 51.`);
+        // 3) Guardar la orden en Google Sheets (hoja "Ordenes")
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                orden: numOrden,
+                fecha: fechaTexto,
+                nombre: nombre.value,
+                telefono: telefono.value,
+                equipo: equipo.value,
+                modelo: modelo.value,
+                problema: problema.value,
+                detalle: detalle.value,
+                estado: estado.value,
+                calcosDecision: calcosDecision?.value || "N/A"
+            })
+        });
+
+        alert(`Orden ${numOrden} creada: PDF descargado, enviado a AREA 51 y guardada en Google Sheets.`);
     } catch (err) {
         console.error(err);
-        alert("Se generó el PDF, pero hubo un error al enviarlo por correo.");
+        alert("Se generó el PDF, pero hubo un error al enviarlo o guardarlo.");
     }
 }
 </script>
