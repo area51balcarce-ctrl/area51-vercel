@@ -54,18 +54,56 @@
     }
 
     .btn { 
-        display:block; background:linear-gradient(90deg,#00e676,#25D366);
-        color:white; padding:14px; text-align:center;
-        font-size:18px; margin-top:20px; border-radius:8px; text-decoration:none;
-        border:none; box-shadow:0 0 12px rgba(0,230,118,0.7); cursor:pointer;
+        display:block; 
+        background:linear-gradient(90deg,#00e676,#25D366);
+        color:white; 
+        padding:14px; 
+        text-align:center;
+        font-size:18px; 
+        margin-top:20px; 
+        border-radius:8px; 
+        text-decoration:none;
+        border:none; 
+        box-shadow:0 0 12px rgba(0,230,118,0.7); 
+        cursor:pointer;
     }
-    .btn:hover { filter:brightness(1.05); }
+    .btn-secondary {
+        display:block; 
+        background:#007bff;
+        color:white; 
+        padding:12px; 
+        text-align:center;
+        font-size:16px; 
+        margin-top:10px; 
+        border-radius:8px; 
+        text-decoration:none;
+        border:none; 
+        box-shadow:0 0 8px rgba(0,123,255,0.5); 
+        cursor:pointer;
+    }
+    .btn:hover, .btn-secondary:hover { 
+        filter:brightness(1.05); 
+    }
 
     .condiciones { 
-        background:#fff3cd; padding:15px; border-radius:8px; 
-        border:1px solid #e6c882; margin-top:15px; font-size:13px;
+        background:#fff3cd; 
+        padding:15px; 
+        border-radius:8px; 
+        border:1px solid #e6c882; 
+        margin-top:15px; 
+        font-size:13px;
     }
-    .condiciones h3 { text-align:center; margin-top:0; margin-bottom:8px; }
+    .condiciones h3 { 
+        text-align:center; 
+        margin-top:0; 
+        margin-bottom:8px; 
+    }
+
+    @media print {
+        button {
+            display:none;
+        }
+    }
 </style>
 </head>
 <body>
@@ -79,9 +117,9 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN (desde Apps Script + Google Sheets) -->
+    <!-- NÚMERO DE ORDEN (auto, pero editable para vos) -->
     <label>Número de Orden</label>
-    <input id="orden" type="text" readonly />
+    <input id="orden" type="text" placeholder="Ej: A51-2025-11-19-0000" />
 
     <label>Nombre Completo</label>
     <input id="nombre" type="text" />
@@ -89,23 +127,20 @@
     <label>Teléfono / Contacto</label>
     <input id="telefono" type="text" />
 
-<label>Tipo de Equipo</label>
-<select id="equipo" onchange="mostrarModelos()">
-    <option value="">Seleccionar...</option>
-    <option value="PLAYSTATION 4">PLAYSTATION 4</option>
-    <option value="PLAYSTATION 5">PLAYSTATION 5</option>
-    <option value="XBOX SERIES X">XBOX SERIES X</option>
-    <option value="XBOX SERIES S">XBOX SERIES S</option>
-    <option value="XBOX ONE X">XBOX ONE X</option>
-    <option value="XBOX ONE">XBOX ONE</option>
-    <option value="GABINETE">GABINETE</option>
-    <option value="NOTEBOOK">NOTEBOOK</option>
-
-    <!-- 🔵 NUEVOS AGREGADOS -->
-    <option value="DUALSHOCK 4">DUALSHOCK 4</option>
-    <option value="DUALSENSE">DUALSENSE</option>
-</select>
-
+    <label>Tipo de Equipo</label>
+    <select id="equipo" onchange="mostrarModelos()">
+        <option value="">Seleccionar...</option>
+        <option value="PLAYSTATION 4">PLAYSTATION 4</option>
+        <option value="PLAYSTATION 5">PLAYSTATION 5</option>
+        <option value="XBOX SERIES X">XBOX SERIES X</option>
+        <option value="XBOX SERIES S">XBOX SERIES S</option>
+        <option value="XBOX ONE X">XBOX ONE X</option>
+        <option value="XBOX ONE">XBOX ONE</option>
+        <option value="GABINETE">GABINETE</option>
+        <option value="NOTEBOOK">NOTEBOOK</option>
+        <option value="DUALSHOCK 4">DUALSHOCK 4</option>
+        <option value="DUALSENSE">DUALSENSE</option>
+    </select>
 
     <div id="modelos" style="display:none;">
         <label>Modelo del Equipo</label>
@@ -125,6 +160,10 @@
 
     <label>Descripción del Problema</label>
     <textarea id="detalle"></textarea>
+
+    <!-- NUEVO: CAMPO PRESUPUESTO SOLO PARA EL TÉCNICO -->
+    <label>Presupuesto (solo visible para el técnico)</label>
+    <textarea id="presupuesto" placeholder="Ej: Cambio de lámina conductora + mantenimiento. Total $30.000"></textarea>
 
     <label>Estado físico del equipo al recibir</label>
     <select id="estado" onchange="mostrarCalcos()">
@@ -162,7 +201,12 @@
     <canvas id="signature-pad"></canvas>
     <button type="button" onclick="limpiarFirma()">Borrar Firma</button>
 
-    <button class="btn" type="button" onclick="enviarWhatsApp()">Enviar por WhatsApp</button>
+    <!-- Botón original: Orden completa (WhatsApp + PDF + Email) -->
+    <button class="btn" type="button" onclick="enviarWhatsApp()">Enviar ORDEN (WhatsApp + PDF + Email)</button>
+
+    <!-- Botón nuevo: solo presupuesto por WhatsApp -->
+    <button class="btn-secondary" type="button" onclick="enviarPresupuestoWhatsApp()">Enviar PRESUPUESTO por WhatsApp</button>
+
 </div>
 
 <!-- Librería para generar PDF -->
@@ -176,28 +220,28 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// NÚMERO DE ORDEN DESDE APPS SCRIPT
+// NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO), PERO EDITABLE
 const ordenInput = document.getElementById("orden");
 
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch("https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgjLyQ6MBuohRgn1vJ95_xIW7MyYk0YprKzfSh9OESimf__QS9eGG85y9MDmP81eE8KeWuwzlyHQwOLvuTY_fI4Mw0qtWJ4RXDvCOiNGcUV_Zs9H6rXr2GnQ0ByLXkaVvH2ZM0_Fn4Nm7p3wVpqoTuGwuvNpe4bdyJ4GN-B8ZVfi0rhGsz7yrBYMgZeQvbLKwcewMF4F-sCz-ZRgrDmz_ZUmOjj2nVr83M_zPDyaVNMOVYga4OzCh_-Ja5JuToZ4yGo-XZiWj5XJVwK1yvc8nUTSm_slg&lib=MSBKo8CN5pWSJDkAxp2eQcXvq73vH79U2");
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec");
         const data = await res.json();
         if (data.orderNumber) {
             ordenInput.value = data.orderNumber;
         } else {
-            ordenInput.value = "A51-SIN-NUMERO";
+            ordenInput.value = "";
         }
     } catch (err) {
         console.error("Error obteniendo número de orden:", err);
-        ordenInput.value = "A51-ERROR";
+        // vos después podés escribirlo a mano si falla
     }
 }
 
-// cargar número de orden al abrir la página
+// cargar número de orden al abrir la página (para ingresos nuevos)
 cargarNumeroOrden();
 
-// MODELOS
+// MODELOS (podés tunear más si querés)
 function mostrarModelos(){
     let equipo = document.getElementById("equipo").value;
     let modelo = document.getElementById("modelo");
@@ -276,8 +320,8 @@ function limpiarFirma(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-// Resumen para WhatsApp
-function generarResumen(){
+// Resumen para WhatsApp (ORDEN COMPLETA)
+function generarResumenOrden(){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
 N° de Orden: ${orden.value}
@@ -295,11 +339,52 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL
-async function enviarWhatsApp(){
-    const resumen = generarResumen();
+// TEXTO DE PRESUPUESTO PARA WHATSAPP (MODO TÉCNICO)
+function generarPresupuestoTexto() {
+    const numOrden = orden.value || "(sin número)";
+    const equipoTxt = equipo.value || "";
+    const detalleTxt = detalle.value || "";
+    const presupuestoTxt = presupuesto.value || "";
 
-    // 1) WhatsApp
+    return `
+AREA 51 – Presupuesto de reparación
+
+N° de Orden: ${numOrden}
+Equipo: ${equipoTxt}
+
+🔧 Diagnóstico del equipo:
+${detalleTxt}
+
+🛠 Trabajo a realizar:
+${presupuestoTxt}
+
+💰 Costo total del servicio:
+(Incluido en el detalle de presupuesto)
+
+⏳ Tiempo estimado de entrega:
+A confirmar según disponibilidad.
+
+📌 Nota:
+No se realizará ningún cargo adicional sin autorización previa del cliente.
+La garantía cubre únicamente defectos de la reparación realizada.
+
+A disposición por cualquier consulta.
+`;
+}
+
+// BOTÓN NUEVO: SOLO PRESUPUESTO POR WHATSAPP
+function enviarPresupuestoWhatsApp() {
+    const texto = generarPresupuestoTexto();
+    window.open(
+        `https://wa.me/5492266464931?text=${encodeURIComponent(texto)}`
+    );
+}
+
+// WHATSAPP + PDF + EMAIL (ORDEN COMPLETA)
+async function enviarWhatsApp(){
+    const resumen = generarResumenOrden();
+
+    // 1) WhatsApp con resumen de ORDEN (ingreso)
     window.open(
         `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
     );
@@ -323,6 +408,8 @@ async function enviarWhatsApp(){
 
             <p><strong>Problema:</strong> ${problema.value}</p>
             <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
+
+            <p><strong>Presupuesto (técnico):</strong><br>${presupuesto.value}</p>
 
             <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
             <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
@@ -364,9 +451,10 @@ async function enviarWhatsApp(){
 
         const pdfBase64 = dataUri.split(',')[1];
 
+        // Descargar el PDF en el dispositivo del cliente/tuyo
         html2pdf().set(opt).from(html).save();
 
-        // Si tenés configurado /api/sendEmail en Vercel, esto lo manda por mail también
+        // Enviar al backend (Vercel) para mandar el correo
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -378,6 +466,7 @@ async function enviarWhatsApp(){
                 modelo: modelo.value,
                 problema: problema.value,
                 detalle: detalle.value,
+                presupuesto: presupuesto.value,
                 estado: estado.value,
                 calcosDecision: calcosDecision?.value || "N/A",
                 fecha: fechaTexto,
@@ -395,5 +484,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
-
