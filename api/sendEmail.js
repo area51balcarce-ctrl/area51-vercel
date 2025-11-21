@@ -10,6 +10,7 @@ export default async function handler(req, res) {
 
   try {
     const {
+      orden,
       nombre,
       telefono,
       equipo,
@@ -27,21 +28,35 @@ export default async function handler(req, res) {
     }
 
     const safeFecha = fecha || "sin_fecha";
-    const nombreArchivo = `Orden_AREA51_${safeFecha.replace(/\//g, "-")}.pdf`;
+    const safeOrden = orden || "SIN-ORDEN";
+
+    // Nombre del archivo: incluye orden y fecha para que lo ubiques fácil
+    const nombreArchivo = `Orden_AREA51_${safeOrden}_${safeFecha.replace(
+      /\//g,
+      "-"
+    )}.pdf`;
 
     const { error } = await resend.emails.send({
       from: "Formularios AREA 51 <onboarding@resend.dev>",
       to: "area51.balcarce@gmail.com",
-      subject: `AREA 51 - Nueva orden de servicio - ${nombre || "Sin nombre"}`,
+      subject: `AREA 51 - Nueva orden de servicio - ${safeOrden} - ${
+        nombre || "Sin nombre"
+      }`,
       html: `
         <h2>Nueva orden de servicio - AREA 51</h2>
+
+        <p><strong>Orden:</strong> ${safeOrden}</p>
         <p><strong>Fecha:</strong> ${fecha || "-"}</p>
+
         <p><strong>Nombre:</strong> ${nombre || "-"}</p>
         <p><strong>Teléfono:</strong> ${telefono || "-"}</p>
+
         <p><strong>Equipo:</strong> ${equipo || "-"}</p>
         <p><strong>Modelo:</strong> ${modelo || "-"}</p>
+
         <p><strong>Problema:</strong> ${problema || "-"}</p>
         <p><strong>Descripción:</strong> ${detalle || "-"}</p>
+
         <p><strong>Estado físico:</strong> ${estado || "-"}</p>
         <p><strong>Calcomanías:</strong> ${calcosDecision || "N/A"}</p>
 
@@ -51,7 +66,7 @@ export default async function handler(req, res) {
       attachments: [
         {
           filename: nombreArchivo,
-          content: pdfBase64,        // base64 SIN el "data:application/pdf..."
+          content: pdfBase64, // base64 SIN el "data:application/pdf..."
         },
       ],
     });
@@ -67,5 +82,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 }
-
-
