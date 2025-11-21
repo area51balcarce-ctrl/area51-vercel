@@ -113,19 +113,20 @@
     <label>Teléfono / Contacto</label>
     <input id="telefono" type="text" />
 
+    <!-- NUEVO: PRODUCTO -->
+    <label>Producto</label>
+    <select id="producto" onchange="actualizarEquipos()">
+        <option value="">Seleccionar...</option>
+        <option value="consolas">Consolas</option>
+        <option value="mandos">Mandos</option>
+        <option value="computadoras">Computadoras</option>
+    </select>
+
+    <!-- Tipo de Equipo (se completa según PRODUCTO) -->
     <label>Tipo de Equipo</label>
     <select id="equipo" onchange="mostrarModelos()">
         <option value="">Seleccionar...</option>
-        <option value="PLAYSTATION 4">PLAYSTATION 4</option>
-        <option value="PLAYSTATION 5">PLAYSTATION 5</option>
-        <option value="XBOX SERIES X">XBOX SERIES X</option>
-        <option value="XBOX SERIES S">XBOX SERIES S</option>
-        <option value="XBOX ONE X">XBOX ONE X</option>
-        <option value="XBOX ONE">XBOX ONE</option>
-        <option value="GABINETE">GABINETE</option>
-        <option value="NOTEBOOK">NOTEBOOK</option>
-        <option value="DUALSHOCK 4">DUALSHOCK 4</option>
-        <option value="DUALSENSE">DUALSENSE</option>
+        <!-- las opciones las pone actualizarEquipos() -->
     </select>
 
     <div id="modelos" style="display:none;">
@@ -222,30 +223,72 @@ async function cargarNumeroOrden() {
 // cargar número de orden al abrir la página
 cargarNumeroOrden();
 
-// MODELOS (FUNCIÓN MODIFICADA)
+/* PRODUCTO → TIPO DE EQUIPO */
+function actualizarEquipos() {
+    const producto = document.getElementById("producto").value;
+    const equipo = document.getElementById("equipo");
+    const modeloDiv = document.getElementById("modelos");
+    const modelo = document.getElementById("modelo");
+
+    // limpiar equipos
+    equipo.innerHTML = "<option value=''>Seleccionar...</option>";
+
+    if (producto === "consolas") {
+        equipo.innerHTML += `
+            <option value="PLAYSTATION 4">PLAYSTATION 4</option>
+            <option value="PLAYSTATION 5">PLAYSTATION 5</option>
+            <option value="XBOX SERIES X">XBOX SERIES X</option>
+            <option value="XBOX SERIES S">XBOX SERIES S</option>
+            <option value="XBOX ONE X">XBOX ONE X</option>
+            <option value="XBOX ONE">XBOX ONE</option>
+        `;
+    } else if (producto === "mandos") {
+        equipo.innerHTML += `
+            <option value="DUALSHOCK 4">DUALSHOCK 4</option>
+            <option value="DUALSENSE">DUALSENSE</option>
+        `;
+    } else if (producto === "computadoras") {
+        equipo.innerHTML += `
+            <option value="GABINETE">GABINETE</option>
+            <option value="NOTEBOOK">NOTEBOOK</option>
+        `;
+    }
+
+    // al cambiar producto, reseteo modelos
+    modeloDiv.style.display = "none";
+    modelo.innerHTML = "<option value=''>Seleccionar...</option>";
+}
+
+/* MODELOS (según producto / equipo) */
 function mostrarModelos(){
-    let equipo = document.getElementById("equipo").value;
-    let modelo = document.getElementById("modelo");
-    let div = document.getElementById("modelos");
+    const producto = document.getElementById("producto").value;
+    const equipo = document.getElementById("equipo").value;
+    const modelo = document.getElementById("modelo");
+    const div = document.getElementById("modelos");
 
     modelo.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    // 👉 Si es un mando, NO mostrar modelo
-    if (equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
+    // Mandos: sin modelo
+    if (producto === "mandos" || equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
         div.style.display = "none";
-        modelo.value = "";
         return;
     }
 
-    // 👉 Si hay equipo y es consola/PC/Gabinete, mostrar modelos
-    if (equipo && (equipo.includes("PLAYSTATION") || equipo.includes("XBOX"))) {
+    // Consolas: modelos FAT / SLIM / PRO
+    if (producto === "consolas" && equipo) {
         div.style.display = "block";
-        ["FAT","SLIM","PRO"].forEach(m => modelo.innerHTML += `<option>${m}</option>`);
-    } else {
-        // GABINETE, NOTEBOOK, vacío, etc.
-        div.style.display = "none";
-        modelo.value = "";
+        ["FAT","SLIM","PRO"].forEach(m => modelo.innerHTML += `<option value="${m}">${m}</option>`);
+        return;
     }
+
+    // Computadoras (gabinete / notebook): sin modelos (por ahora)
+    if (producto === "computadoras") {
+        div.style.display = "none";
+        return;
+    }
+
+    // Cualquier otro caso
+    div.style.display = "none";
 }
 
 // CALCOS
