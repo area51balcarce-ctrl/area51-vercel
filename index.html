@@ -117,16 +117,15 @@
     <label>Producto</label>
     <select id="producto" onchange="actualizarEquipos()">
         <option value="">Seleccionar...</option>
-        <option value="consolas">Consolas</option>
-        <option value="mandos">Mandos</option>
-        <option value="computadoras">Computadoras</option>
+        <option value="CONSOLAS">Consolas</option>
+        <option value="MANDOS">Mandos</option>
+        <option value="COMPUTADORAS">Computadoras</option>
     </select>
 
-    <!-- Tipo de Equipo (se completa según PRODUCTO) -->
+    <!-- Tipo de Equipo (se llena según PRODUCTO) -->
     <label>Tipo de Equipo</label>
     <select id="equipo" onchange="mostrarModelos()">
         <option value="">Seleccionar...</option>
-        <!-- las opciones las pone actualizarEquipos() -->
     </select>
 
     <div id="modelos" style="display:none;">
@@ -205,6 +204,11 @@ fechaDiv.innerText = "Fecha: " + fechaTexto;
 // NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO)
 const ordenInput = document.getElementById("orden");
 
+// referencias a selects nuevos
+const productoSelect = document.getElementById("producto");
+const equipoSelect    = document.getElementById("equipo");
+const modeloSelect    = document.getElementById("modelo");
+
 async function cargarNumeroOrden() {
     try {
         const res = await fetch(SCRIPT_URL);
@@ -223,72 +227,68 @@ async function cargarNumeroOrden() {
 // cargar número de orden al abrir la página
 cargarNumeroOrden();
 
-/* PRODUCTO → TIPO DE EQUIPO */
+// 🔄 PRODUCTO → llena "Tipo de Equipo"
 function actualizarEquipos() {
-    const producto = document.getElementById("producto").value;
-    const equipo = document.getElementById("equipo");
-    const modeloDiv = document.getElementById("modelos");
-    const modelo = document.getElementById("modelo");
+    const producto = productoSelect.value;
 
-    // limpiar equipos
-    equipo.innerHTML = "<option value=''>Seleccionar...</option>";
+    // limpiamos opciones actuales
+    equipoSelect.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    if (producto === "consolas") {
-        equipo.innerHTML += `
-            <option value="PLAYSTATION 4">PLAYSTATION 4</option>
-            <option value="PLAYSTATION 5">PLAYSTATION 5</option>
-            <option value="XBOX SERIES X">XBOX SERIES X</option>
-            <option value="XBOX SERIES S">XBOX SERIES S</option>
-            <option value="XBOX ONE X">XBOX ONE X</option>
-            <option value="XBOX ONE">XBOX ONE</option>
-        `;
-    } else if (producto === "mandos") {
-        equipo.innerHTML += `
-            <option value="DUALSHOCK 4">DUALSHOCK 4</option>
-            <option value="DUALSENSE">DUALSENSE</option>
-        `;
-    } else if (producto === "computadoras") {
-        equipo.innerHTML += `
-            <option value="GABINETE">GABINETE</option>
-            <option value="NOTEBOOK">NOTEBOOK</option>
-        `;
+    let opciones = [];
+    if (producto === "CONSOLAS") {
+        opciones = [
+            "PLAYSTATION 4",
+            "PLAYSTATION 5",
+            "XBOX SERIES X",
+            "XBOX SERIES S",
+            "XBOX ONE X",
+            "XBOX ONE"
+        ];
+    } else if (producto === "MANDOS") {
+        opciones = ["DUALSHOCK 4", "DUALSENSE"];
+    } else if (producto === "COMPUTADORAS") {
+        opciones = ["GABINETE", "NOTEBOOK"];
     }
 
-    // al cambiar producto, reseteo modelos
-    modeloDiv.style.display = "none";
-    modelo.innerHTML = "<option value=''>Seleccionar...</option>";
+    opciones.forEach(txt => {
+        const opt = document.createElement("option");
+        opt.value = txt;
+        opt.textContent = txt;
+        equipoSelect.appendChild(opt);
+    });
+
+    // al cambiar producto, revisamos otra vez el modelo
+    mostrarModelos();
 }
 
-/* MODELOS (según producto / equipo) */
+// MODELOS (mantiene tu lógica anterior)
 function mostrarModelos(){
-    const producto = document.getElementById("producto").value;
-    const equipo = document.getElementById("equipo").value;
-    const modelo = document.getElementById("modelo");
-    const div = document.getElementById("modelos");
+    let equipo = equipoSelect.value;
+    let div = document.getElementById("modelos");
 
-    modelo.innerHTML = "<option value=''>Seleccionar...</option>";
+    modeloSelect.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    // Mandos: sin modelo
-    if (producto === "mandos" || equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
+    // Si es mando, no hay modelo
+    if (equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
         div.style.display = "none";
+        modeloSelect.value = "";
         return;
     }
 
-    // Consolas: modelos FAT / SLIM / PRO
-    if (producto === "consolas" && equipo) {
+    // Consolas Play/Xbox → FAT / SLIM / PRO
+    if (equipo && (equipo.includes("PLAYSTATION") || equipo.includes("XBOX"))) {
         div.style.display = "block";
-        ["FAT","SLIM","PRO"].forEach(m => modelo.innerHTML += `<option value="${m}">${m}</option>`);
-        return;
-    }
-
-    // Computadoras (gabinete / notebook): sin modelos (por ahora)
-    if (producto === "computadoras") {
+        ["FAT","SLIM","PRO"].forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m;
+            modeloSelect.appendChild(opt);
+        });
+    } else {
+        // Gabinete, Notebook, vacío, etc.
         div.style.display = "none";
-        return;
+        modeloSelect.value = "";
     }
-
-    // Cualquier otro caso
-    div.style.display = "none";
 }
 
 // CALCOS
@@ -363,7 +363,8 @@ N° de Orden: ${orden.value}
 Nombre: ${nombre.value}
 Teléfono: ${telefono.value}
 
-Equipo: ${equipo.value} ${modelo.value}
+Producto: ${productoSelect.value}
+Equipo: ${equipoSelect.value} ${modeloSelect.value}
 Problema: ${problema.value}
 Detalle: ${detalle.value}
 
@@ -396,8 +397,9 @@ async function enviarWhatsApp(){
             <p><strong>Nombre:</strong> ${nombre.value}</p>
             <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
 
-            <p><strong>Tipo de equipo:</strong> ${equipo.value}</p>
-            <p><strong>Modelo del equipo:</strong> ${modelo.value}</p>
+            <p><strong>Producto:</strong> ${productoSelect.value}</p>
+            <p><strong>Tipo de equipo:</strong> ${equipoSelect.value}</p>
+            <p><strong>Modelo del equipo:</strong> ${modeloSelect.value}</p>
 
             <p><strong>Problema:</strong> ${problema.value}</p>
             <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
@@ -454,8 +456,9 @@ async function enviarWhatsApp(){
                 orden: numOrden,
                 nombre: nombre.value,
                 telefono: telefono.value,
-                equipo: equipo.value,
-                modelo: modelo.value,
+                producto: productoSelect.value,
+                equipo: equipoSelect.value,
+                modelo: modeloSelect.value,
                 problema: problema.value,
                 detalle: detalle.value,
                 estado: estado.value,
@@ -474,8 +477,8 @@ async function enviarWhatsApp(){
                 fecha: fechaTexto,
                 nombre: nombre.value,
                 telefono: telefono.value,
-                equipo: equipo.value,
-                modelo: modelo.value,
+                equipo: equipoSelect.value,
+                modelo: modeloSelect.value,
                 problema: problema.value,
                 detalle: detalle.value,
                 estado: estado.value,
