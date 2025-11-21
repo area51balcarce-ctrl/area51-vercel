@@ -222,7 +222,7 @@ async function cargarNumeroOrden() {
 // cargar número de orden al abrir la página
 cargarNumeroOrden();
 
-// MODELOS
+// MODELOS (FUNCIÓN MODIFICADA)
 function mostrarModelos(){
     let equipo = document.getElementById("equipo").value;
     let modelo = document.getElementById("modelo");
@@ -230,11 +230,21 @@ function mostrarModelos(){
 
     modelo.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    if(equipo){
-        div.style.display="block";
-        ["FAT","SLIM","PRO"].forEach(m=>modelo.innerHTML+=`<option>${m}</option>`);
+    // 👉 Si es un mando, NO mostrar modelo
+    if (equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
+        div.style.display = "none";
+        modelo.value = "";
+        return;
+    }
+
+    // 👉 Si hay equipo y es consola/PC/Gabinete, mostrar modelos
+    if (equipo && (equipo.includes("PLAYSTATION") || equipo.includes("XBOX"))) {
+        div.style.display = "block";
+        ["FAT","SLIM","PRO"].forEach(m => modelo.innerHTML += `<option>${m}</option>`);
     } else {
-        div.style.display="none";
+        // GABINETE, NOTEBOOK, vacío, etc.
+        div.style.display = "none";
+        modelo.value = "";
     }
 }
 
