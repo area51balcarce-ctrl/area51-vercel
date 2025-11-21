@@ -113,6 +113,14 @@
     <label>Teléfono / Contacto</label>
     <input id="telefono" type="text" />
 
+    <!-- NUEVO: MEDIO DE PAGO -->
+    <label>Medio de pago</label>
+    <select id="medioPago">
+        <option value="">Seleccionar...</option>
+        <option>Transferencia</option>
+        <option>Efectivo</option>
+    </select>
+
     <!-- NUEVO: PRODUCTO -->
     <label>Producto</label>
     <select id="producto" onchange="actualizarEquipos()">
@@ -208,6 +216,8 @@ const ordenInput = document.getElementById("orden");
 const productoSelect = document.getElementById("producto");
 const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
+// NUEVO: referencia medio de pago
+const medioPagoSelect = document.getElementById("medioPago");
 
 async function cargarNumeroOrden() {
     try {
@@ -362,6 +372,7 @@ N° de Orden: ${orden.value}
 
 Nombre: ${nombre.value}
 Teléfono: ${telefono.value}
+Medio de pago: ${medioPagoSelect.value || "No especificado"}
 
 Producto: ${productoSelect.value}
 Equipo: ${equipoSelect.value} ${modeloSelect.value}
@@ -396,6 +407,7 @@ async function enviarWhatsApp(){
 
             <p><strong>Nombre:</strong> ${nombre.value}</p>
             <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
+            <p><strong>Medio de pago:</strong> ${medioPagoSelect.value || "No especificado"}</p>
 
             <p><strong>Producto:</strong> ${productoSelect.value}</p>
             <p><strong>Tipo de equipo:</strong> ${equipoSelect.value}</p>
@@ -456,6 +468,7 @@ async function enviarWhatsApp(){
                 orden: numOrden,
                 nombre: nombre.value,
                 telefono: telefono.value,
+                medioPago: medioPagoSelect.value || "No especificado",
                 producto: productoSelect.value,
                 equipo: equipoSelect.value,
                 modelo: modeloSelect.value,
@@ -477,6 +490,7 @@ async function enviarWhatsApp(){
                 fecha: fechaTexto,
                 nombre: nombre.value,
                 telefono: telefono.value,
+                medioPago: medioPagoSelect.value || "No especificado",
                 equipo: equipoSelect.value,
                 modelo: modeloSelect.value,
                 problema: problema.value,
