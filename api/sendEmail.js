@@ -13,6 +13,7 @@ export default async function handler(req, res) {
       orden,
       nombre,
       telefono,
+      producto,
       equipo,
       modelo,
       problema,
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
     const safeFecha = fecha || "sin_fecha";
     const safeOrden = orden || "SIN-ORDEN";
 
-    // Nombre del archivo: incluye orden y fecha para que lo ubiques fácil
+    // Nombre del archivo: incluye orden y fecha
     const nombreArchivo = `Orden_AREA51_${safeOrden}_${safeFecha.replace(
       /\//g,
       "-"
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
         <p><strong>Nombre:</strong> ${nombre || "-"}</p>
         <p><strong>Teléfono:</strong> ${telefono || "-"}</p>
 
+        <p><strong>Producto:</strong> ${producto || "-"}</p>
         <p><strong>Equipo:</strong> ${equipo || "-"}</p>
         <p><strong>Modelo:</strong> ${modelo || "-"}</p>
 
