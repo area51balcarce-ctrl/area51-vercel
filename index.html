@@ -64,7 +64,7 @@
         border-radius:8px; 
         text-decoration:none;
         border:none; 
-        box-shadow:0 0 12px rgba(0,230,118,0.7); 
+        box-shadow:0 0 12px rgba(0,255,150,0.7); 
         cursor:pointer;
     }
     .btn:hover { 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 🔗 URL de tu Apps Script (la misma que usaste antes)
+// 🔗 URL NUEVA de tu Apps Script (la copia)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
 
 // FECHA
@@ -216,7 +216,6 @@ const ordenInput = document.getElementById("orden");
 const productoSelect = document.getElementById("producto");
 const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
-// NUEVO: referencia medio de pago
 const medioPagoSelect = document.getElementById("medioPago");
 
 async function cargarNumeroOrden() {
@@ -510,4 +509,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
