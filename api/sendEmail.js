@@ -3,8 +3,9 @@ import { Resend } from "resend";
 import { google } from "googleapis";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const SPREADSHEET_ID = process.env.GS_SPREADSHEET_ID;
 
-// === Helpers para Google Sheets (misma lógica que generateOrder.js) ===
+// mismo esquema de auth que usás en generateOrder.js
 async function getSheetsClient() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || "{}");
 
@@ -19,59 +20,6 @@ async function getSheetsClient() {
   return google.sheets({ version: "v4", auth: jwtClient });
 }
 
-// Guarda una fila en la hoja "Ordenes" de tu spreadsheet
-async function guardarOrdenEnSheets(payload) {
-  const {
-    orden,
-    fecha,
-    nombre,
-    telefono,
-    producto,
-    equipo,
-    modelo,
-    problema,
-    detalle,
-    estado,
-    calcosDecision,
-  } = payload;
-
-  const spreadsheetId = process.env.GS_SPREADSHEET_ID; // debe ser 17TFP...
-  if (!spreadsheetId) {
-    console.error("GS_SPREADSHEET_ID no está definido en las variables de entorno");
-    return;
-  }
-
-  const sheets = await getSheetsClient();
-
-  // Hoja y rango donde queremos escribir
-  const range = "Ordenes!A:K";
-
-  const values = [
-    [
-      orden || "",
-      fecha || "",
-      nombre || "",
-      telefono || "",
-      equipo || "",
-      modelo || "",
-      problema || "",
-      detalle || "",
-      estado || "",
-      calcosDecision || "",
-      "" // LinkWhatsApp (lo podés completar después si querés)
-    ],
-  ];
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range,
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: { values },
-  });
-}
-
-// === Handler HTTP de Vercel ===
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -82,6 +30,7 @@ export default async function handler(req, res) {
       orden,
       nombre,
       telefono,
+      medioPago,
       producto,
       equipo,
       modelo,
@@ -105,7 +54,7 @@ export default async function handler(req, res) {
       "-"
     )}.pdf`;
 
-    // 1) Enviar correo con Resend (igual que antes)
+    // 1) ENVIAR MAIL
     const { error } = await resend.emails.send({
       from: "Formularios AREA 51 <onboarding@resend.dev>",
       to: "area51.balcarce@gmail.com",
@@ -120,6 +69,8 @@ export default async function handler(req, res) {
 
         <p><strong>Nombre:</strong> ${nombre || "-"}</p>
         <p><strong>Teléfono:</strong> ${telefono || "-"}</p>
+
+        <p><strong>Medio de pago:</strong> ${medioPago || "-"}</p>
 
         <p><strong>Producto:</strong> ${producto || "-"}</p>
         <p><strong>Equipo:</strong> ${equipo || "-"}</p>
@@ -147,24 +98,39 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Error al enviar el correo" });
     }
 
-    // 2) Guardar la orden en Google Sheets (ORDENES)
+    // 2) GUARDAR EN GOOGLE SHEETS (hoja "Ordenes")
     try {
-      await guardarOrdenEnSheets({
-        orden,
-        fecha,
-        nombre,
-        telefono,
-        producto,
-        equipo,
-        modelo,
-        problema,
-        detalle,
-        estado,
-        calcosDecision,
+      const sheets = await getSheetsClient();
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Ordenes!A:K",           // columnas A a K
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [
+            [
+              safeOrden || "",
+              fecha || "",
+              nombre || "",
+              telefono || "",
+              equipo || "",
+              modelo || "",
+              problema || "",
+              detalle || "",
+              estado || "",
+              calcosDecision || "",
+              "", // LinkWhatsApp (si después querés guardarlo)
+            ],
+          ],
+        },
       });
     } catch (sheetErr) {
-      console.error("Error guardando en Google Sheets:", sheetErr);
-      // NO corto la respuesta al cliente: el mail ya salió
+      console.error("Error al escribir en Google Sheets:", sheetErr);
+      // el mail ya salió; devolvemos 200 pero avisamos en el log
+      return res.status(200).json({
+        success: true,
+        warning: "Mail enviado pero fallo el guardado en Sheets",
+      });
     }
 
     return res.status(200).json({ success: true });
