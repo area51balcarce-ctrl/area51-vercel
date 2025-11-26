@@ -459,8 +459,8 @@ async function enviarWhatsApp(){
         // 2a) Descargar el PDF en el dispositivo
         html2pdf().set(opt).from(html).save();
 
-        // 2b) Enviar al backend (Vercel) para mandar el correo
-        await fetch("/api/sendEmail", {
+                // 2b) Enviar al backend (Vercel) para mandar el correo
+        const resp = await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -479,6 +479,23 @@ async function enviarWhatsApp(){
                 pdfBase64
             })
         });
+
+        const dataResp = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+            console.error("Error HTTP en /api/sendEmail:", resp.status, dataResp);
+            alert("Se generó el PDF, pero hubo un error al enviar el mail o guardar la orden.");
+            return;
+        }
+
+        if (dataResp.warning) {
+            console.warn(dataResp.warning);
+            alert("El mail salió, pero hubo un problema guardando la orden en la hoja. Revisá la consola.");
+            return;
+        }
+
+        alert(`Orden ${numOrden} creada: PDF descargado, enviada por mail y guardada en Google Sheets.`);
+
 
         // 3) Guardar la orden en Google Sheets (hoja "Ordenes")
         await fetch(SCRIPT_URL, {
@@ -509,6 +526,7 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
 
 
 
