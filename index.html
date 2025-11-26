@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN (lo genera Vercel /api/generateOrder) -->
+    <!-- NÚMERO DE ORDEN (lo genera Apps Script) -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,11 +199,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 URL del WebApp de Apps Script (la que ves en "Implementar > Implementaciones > Web App")
+// 👉 URL del WebApp de Apps Script
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
-
-// 👉 Endpoint Vercel que genera el número y actualiza Counters
-const ORDER_API_URL = "/api/generateOrder";
 
 // FECHA
 const fechaDiv = document.getElementById("fecha");
@@ -221,19 +218,20 @@ const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 🔹 1) Pedir número de orden a /api/generateOrder
+// 🔹 Pedir número de orden directamente a Apps Script
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch(ORDER_API_URL);
+        const res = await fetch(SCRIPT_URL);
         const data = await res.json();
-        if (data.ok && data.orderNumber) {
-            ordenInput.value = data.orderNumber;
+
+        if (data.orderNumber) {
+            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-26-0001
         } else {
-            console.error("generateOrder respondió mal:", data);
+            console.error("Respuesta rara de Apps Script:", data);
             ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
-        console.error("Error en /api/generateOrder:", err);
+        console.error("Error obteniendo número de orden desde Apps Script:", err);
         ordenInput.value = "A51-ERROR";
     }
 }
@@ -360,7 +358,7 @@ function limpiarFirma(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-// Resumen para WhatsApp (texto simple)
+// Resumen para WhatsApp
 function generarResumen(){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
