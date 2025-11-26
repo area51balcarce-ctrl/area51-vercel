@@ -201,6 +201,7 @@
 <script>
 // 🔗 URL de tu Apps Script (la nueva, la que me pasaste)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
+const ORDER_API_URL = "/api/generateOrder";   // endpoint de Vercel que ya tenés
 
 // FECHA
 const fechaDiv = document.getElementById("fecha");
@@ -218,25 +219,26 @@ const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 🔹 Pedir número de orden al WebApp (doGet)
+// 🔹 Pedir número de orden al backend de Vercel (api/generateOrder)
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch(SCRIPT_URL);
+        const res = await fetch(ORDER_API_URL);
         const data = await res.json();
 
-        console.log("Respuesta doGet:", data);
+        console.log("Respuesta /api/generateOrder:", data);
 
         if (data && data.ok && data.orderNumber) {
             ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-26-0001
         } else {
-            console.error("Respuesta rara de Apps Script:", data);
+            console.error("generateOrder respondió mal:", data);
             ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
-        console.error("Error obteniendo número de orden:", err);
+        console.error("Error en /api/generateOrder:", err);
         ordenInput.value = "A51-ERROR";
     }
 }
+
 // cargar número de orden al abrir la página
 cargarNumeroOrden();
 
@@ -522,3 +524,4 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
