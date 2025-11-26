@@ -199,8 +199,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// URL de tu Apps Script
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
+// ⚠️ PEGÁ ACÁ LA URL DE TU WEBAPP (la que termina en /exec)
+const SCRIPT_URL = "PEGAR_ACA_TU_URL_WEBAPP";
 
 // FECHA
 const fechaDiv = document.getElementById("fecha");
@@ -209,15 +209,19 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO)
-const ordenInput = document.getElementById("orden");
-
-// selects
+// CAMPOS
+const ordenInput    = document.getElementById("orden");
+const nombreInput   = document.getElementById("nombre");
+const telefonoInput = document.getElementById("telefono");
 const productoSelect = document.getElementById("producto");
 const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
+const problemaSelect  = document.getElementById("problema");
+const detalleInput    = document.getElementById("detalle");
+const estadoSelect    = document.getElementById("estado");
 
+// CARGAR NÚMERO
 async function cargarNumeroOrden() {
     try {
         const res = await fetch(SCRIPT_URL);
@@ -232,15 +236,12 @@ async function cargarNumeroOrden() {
         ordenInput.value = "A51-ERROR";
     }
 }
-
-// cargar número de orden al abrir la página
 cargarNumeroOrden();
 
 // PRODUCTO → EQUIPOS
 function actualizarEquipos() {
     const producto = productoSelect.value;
     equipoSelect.innerHTML = "<option value=''>Seleccionar...</option>";
-
     let opciones = [];
     if (producto === "CONSOLAS") {
         opciones = [
@@ -256,14 +257,12 @@ function actualizarEquipos() {
     } else if (producto === "COMPUTADORAS") {
         opciones = ["GABINETE", "NOTEBOOK"];
     }
-
     opciones.forEach(txt => {
         const opt = document.createElement("option");
         opt.value = txt;
         opt.textContent = txt;
         equipoSelect.appendChild(opt);
     });
-
     mostrarModelos();
 }
 
@@ -273,14 +272,11 @@ function mostrarModelos(){
     let div = document.getElementById("modelos");
     modeloSelect.innerHTML = "<option value=''>Seleccionar...</option>";
 
-    // Mandos sin modelo
     if (equipo === "DUALSHOCK 4" || equipo === "DUALSENSE") {
         div.style.display = "none";
         modeloSelect.value = "";
         return;
     }
-
-    // Consolas → FAT / SLIM / PRO
     if (equipo && (equipo.includes("PLAYSTATION") || equipo.includes("XBOX"))) {
         div.style.display = "block";
         ["FAT","SLIM","PRO"].forEach(m => {
@@ -297,7 +293,7 @@ function mostrarModelos(){
 
 // CALCOS
 function mostrarCalcos(){
-    let estado = document.getElementById("estado").value;
+    let estado = estadoSelect.value;
     document.getElementById("calcosOpciones").style.display =
         estado === "Calcomanías" ? "block" : "none";
 }
@@ -324,14 +320,12 @@ canvas.addEventListener("mousedown", e=>{
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
 });
-
 canvas.addEventListener("mousemove", e=>{
     if(!dibujando) return;
     const p = getPos(e);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
 });
-
 canvas.addEventListener("mouseup", ()=> dibujando=false);
 canvas.addEventListener("mouseleave", ()=> dibujando=false);
 
@@ -343,7 +337,6 @@ canvas.addEventListener("touchstart", e=>{
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
 });
-
 canvas.addEventListener("touchmove", e=>{
     e.preventDefault();
     if(!dibujando) return;
@@ -351,7 +344,6 @@ canvas.addEventListener("touchmove", e=>{
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
 });
-
 canvas.addEventListener("touchend", ()=> dibujando=false);
 
 function limpiarFirma(){
@@ -362,36 +354,35 @@ function limpiarFirma(){
 function generarResumen(){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
-N° de Orden: ${orden.value}
+N° de Orden: ${ordenInput.value}
 
-Nombre: ${nombre.value}
-Teléfono: ${telefono.value}
+Nombre: ${nombreInput.value}
+Teléfono: ${telefonoInput.value}
 Medio de pago: ${medioPagoSelect.value || "No especificado"}
 
 Producto: ${productoSelect.value}
 Equipo: ${equipoSelect.value} ${modeloSelect.value}
-Problema: ${problema.value}
-Detalle: ${detalle.value}
+Problema: ${problemaSelect.value}
+Detalle: ${detalleInput.value}
 
-Estado físico: ${estado.value}
-Calcomanías: ${calcosDecision?.value || "N/A"}
+Estado físico: ${estadoSelect.value}
+Calcomanías: ${typeof calcosDecision !== 'undefined' && calcosDecision.value ? calcosDecision.value : "N/A"}
 
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS (GET)
+// ENVIAR
 async function enviarWhatsApp(){
     const resumen = generarResumen();
 
-    // 1) WhatsApp al cliente
+    // 1) WhatsApp
     window.open(
         `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
     );
 
-    // 2) PDF completo con todo + firma
     const firma = canvas.toDataURL("image/png");
     const fechaNombre = fechaTexto.replace(/\//g,"-");
-    const numOrden = orden.value || "A51";
+    const numOrden = ordenInput.value || "A51";
 
     const html = `
         <div style="font-family:Arial, sans-serif; font-size:12px; line-height:1.4;">
@@ -399,19 +390,19 @@ async function enviarWhatsApp(){
             <p><strong>Fecha:</strong> ${fechaTexto}</p>
             <p><strong>N° de Orden:</strong> ${numOrden}</p>
 
-            <p><strong>Nombre:</strong> ${nombre.value}</p>
-            <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
+            <p><strong>Nombre:</strong> ${nombreInput.value}</p>
+            <p><strong>Teléfono / Contacto:</strong> ${telefonoInput.value}</p>
             <p><strong>Medio de pago:</strong> ${medioPagoSelect.value || "No especificado"}</p>
 
             <p><strong>Producto:</strong> ${productoSelect.value}</p>
             <p><strong>Tipo de equipo:</strong> ${equipoSelect.value}</p>
             <p><strong>Modelo del equipo:</strong> ${modeloSelect.value}</p>
 
-            <p><strong>Problema:</strong> ${problema.value}</p>
-            <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
+            <p><strong>Problema:</strong> ${problemaSelect.value}</p>
+            <p><strong>Descripción del problema:</strong><br>${detalleInput.value}</p>
 
-            <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
-            <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
+            <p><strong>Estado físico del equipo al recibir:</strong> ${estadoSelect.value}</p>
+            <p><strong>Calcomanías:</strong> ${typeof calcosDecision !== 'undefined' && calcosDecision.value ? calcosDecision.value : "N/A"}</p>
 
             <hr>
             <h3>Condiciones del Servicio Técnico</h3>
@@ -442,7 +433,6 @@ async function enviarWhatsApp(){
     };
 
     try {
-        // Generar PDF en base64 para mail
         const dataUri = await html2pdf()
             .set(opt)
             .from(html)
@@ -450,62 +440,57 @@ async function enviarWhatsApp(){
             .output('datauristring');
 
         const pdfBase64 = dataUri.split(',')[1];
-
-        // Descargar el PDF en el dispositivo
         html2pdf().set(opt).from(html).save();
 
-        // Enviar al backend (Vercel) para mandar el correo
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 orden: numOrden,
-                nombre: nombre.value,
-                telefono: telefono.value,
+                nombre: nombreInput.value,
+                telefono: telefonoInput.value,
                 medioPago: medioPagoSelect.value || "No especificado",
                 producto: productoSelect.value,
                 equipo: equipoSelect.value,
                 modelo: modeloSelect.value,
-                problema: problema.value,
-                detalle: detalle.value,
-                estado: estado.value,
-                calcosDecision: calcosDecision?.value || "N/A",
+                problema: problemaSelect.value,
+                detalle: detalleInput.value,
+                estado: estadoSelect.value,
+                calcosDecision: typeof calcosDecision !== 'undefined' && calcosDecision.value ? calcosDecision.value : "N/A",
                 fecha: fechaTexto,
                 pdfBase64
             })
         });
-
     } catch (err) {
-        console.error("Error en PDF o envío de mail:", err);
-        alert("La orden se generó, pero hubo un problema con el PDF o el email.");
+        console.error("Error en PDF o mail:", err);
     }
 
-    // 3) Guardar SIEMPRE en Google Sheets usando GET
+    // 3) GUARDAR EN SHEETS (POST)
     try {
-        const params = new URLSearchParams({
-            action: "save",
-            orden: numOrden,
-            fecha: fechaTexto,
-            nombre: nombre.value,
-            telefono: telefono.value,
-            equipo: equipoSelect.value,
-            modelo: modeloSelect.value,
-            problema: problema.value,
-            detalle: detalle.value,
-            estado: estado.value,
-            calcosDecision: calcosDecision?.value || "N/A"
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                orden: numOrden,
+                fecha: fechaTexto,
+                nombre: nombreInput.value,
+                telefono: telefonoInput.value,
+                equipo: equipoSelect.value,
+                modelo: modeloSelect.value,
+                problema: problemaSelect.value,
+                detalle: detalleInput.value,
+                estado: estadoSelect.value,
+                calcosDecision: typeof calcosDecision !== 'undefined' && calcosDecision.value ? calcosDecision.value : "N/A"
+            })
         });
-
-        await fetch(`${SCRIPT_URL}?${params.toString()}`);
 
         alert(`Orden ${numOrden} creada y guardada en Google Sheets.`);
     } catch (err) {
-        console.error("Error guardando la orden en Sheets:", err);
-        alert("Hubo un problema al guardar la orden en Google Sheets. Anotá el número por las dudas.");
+        console.error("Error guardando en Sheets:", err);
+        alert("Hubo un problema al guardar la orden en Google Sheets.");
     }
 }
 </script>
 
 </body>
 </html>
-
