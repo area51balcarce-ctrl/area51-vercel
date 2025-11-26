@@ -1,8 +1,77 @@
 // api/sendEmail.js
 import { Resend } from "resend";
+import { google } from "googleapis";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// === Helpers para Google Sheets (misma lógica que generateOrder.js) ===
+async function getSheetsClient() {
+  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || "{}");
+
+  const jwtClient = new google.auth.JWT(
+    credentials.client_email,
+    null,
+    credentials.private_key,
+    ["https://www.googleapis.com/auth/spreadsheets"]
+  );
+
+  await jwtClient.authorize();
+  return google.sheets({ version: "v4", auth: jwtClient });
+}
+
+// Guarda una fila en la hoja "Ordenes" de tu spreadsheet
+async function guardarOrdenEnSheets(payload) {
+  const {
+    orden,
+    fecha,
+    nombre,
+    telefono,
+    producto,
+    equipo,
+    modelo,
+    problema,
+    detalle,
+    estado,
+    calcosDecision,
+  } = payload;
+
+  const spreadsheetId = process.env.GS_SPREADSHEET_ID; // debe ser 17TFP...
+  if (!spreadsheetId) {
+    console.error("GS_SPREADSHEET_ID no está definido en las variables de entorno");
+    return;
+  }
+
+  const sheets = await getSheetsClient();
+
+  // Hoja y rango donde queremos escribir
+  const range = "Ordenes!A:K";
+
+  const values = [
+    [
+      orden || "",
+      fecha || "",
+      nombre || "",
+      telefono || "",
+      equipo || "",
+      modelo || "",
+      problema || "",
+      detalle || "",
+      estado || "",
+      calcosDecision || "",
+      "" // LinkWhatsApp (lo podés completar después si querés)
+    ],
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values },
+  });
+}
+
+// === Handler HTTP de Vercel ===
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -31,12 +100,12 @@ export default async function handler(req, res) {
     const safeFecha = fecha || "sin_fecha";
     const safeOrden = orden || "SIN-ORDEN";
 
-    // Nombre del archivo: incluye orden y fecha
     const nombreArchivo = `Orden_AREA51_${safeOrden}_${safeFecha.replace(
       /\//g,
       "-"
     )}.pdf`;
 
+    // 1) Enviar correo con Resend (igual que antes)
     const { error } = await resend.emails.send({
       from: "Formularios AREA 51 <onboarding@resend.dev>",
       to: "area51.balcarce@gmail.com",
@@ -68,7 +137,7 @@ export default async function handler(req, res) {
       attachments: [
         {
           filename: nombreArchivo,
-          content: pdfBase64, // base64 SIN el "data:application/pdf..."
+          content: pdfBase64,
         },
       ],
     });
@@ -76,6 +145,26 @@ export default async function handler(req, res) {
     if (error) {
       console.error("Error al enviar correo AREA 51:", error);
       return res.status(500).json({ error: "Error al enviar el correo" });
+    }
+
+    // 2) Guardar la orden en Google Sheets (ORDENES)
+    try {
+      await guardarOrdenEnSheets({
+        orden,
+        fecha,
+        nombre,
+        telefono,
+        producto,
+        equipo,
+        modelo,
+        problema,
+        detalle,
+        estado,
+        calcosDecision,
+      });
+    } catch (sheetErr) {
+      console.error("Error guardando en Google Sheets:", sheetErr);
+      // NO corto la respuesta al cliente: el mail ya salió
     }
 
     return res.status(200).json({ success: true });
