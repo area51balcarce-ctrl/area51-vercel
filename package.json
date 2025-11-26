@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "resend": "latest",
-    "googleapis": "latest"
+    "googleapis": "^118.0.0"
   }
 }
