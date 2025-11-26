@@ -130,7 +130,7 @@
         <option value="COMPUTADORAS">Computadoras</option>
     </select>
 
-    <!-- Tipo de Equipo (se llena según PRODUCTO) -->
+    <!-- Tipo de Equipo -->
     <label>Tipo de Equipo</label>
     <select id="equipo" onchange="mostrarModelos()">
         <option value="">Seleccionar...</option>
@@ -199,9 +199,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 🔗 URL de tu Apps Script (la nueva, la que me pasaste)
+// 🔗 SOLO Apps Script: WebApp que genera número y guarda en Sheets
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
-const ORDER_API_URL = "/api/generateOrder";   // endpoint de Vercel que ya tenés
 
 // FECHA
 const fechaDiv = document.getElementById("fecha");
@@ -210,42 +209,36 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// NÚMERO DE ORDEN DESDE APPS SCRIPT (AUTO)
+// INPUT N° de orden
 const ordenInput = document.getElementById("orden");
 
-// referencias a selects nuevos
+// Selects
 const productoSelect = document.getElementById("producto");
 const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 🔹 Pedir número de orden al backend de Vercel (api/generateOrder)
+// 1) Pedir número de orden a Apps Script (doGet)
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch(ORDER_API_URL);
+        const res = await fetch(SCRIPT_URL);
         const data = await res.json();
-
-        console.log("Respuesta /api/generateOrder:", data);
-
-        if (data && data.ok && data.orderNumber) {
-            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-26-0001
+        if (data.ok && data.orderNumber) {
+            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-26-0004
         } else {
-            console.error("generateOrder respondió mal:", data);
+            console.error("Respuesta rara de Apps Script:", data);
             ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
-        console.error("Error en /api/generateOrder:", err);
+        console.error("Error obteniendo número de orden desde Apps Script:", err);
         ordenInput.value = "A51-ERROR";
     }
 }
-
-// cargar número de orden al abrir la página
 cargarNumeroOrden();
 
-// 🔄 PRODUCTO → llena "Tipo de Equipo"
+// PRODUCTO → EQUIPOS
 function actualizarEquipos() {
     const producto = productoSelect.value;
-
     equipoSelect.innerHTML = "<option value=''>Seleccionar...</option>";
 
     let opciones = [];
@@ -482,9 +475,9 @@ async function enviarWhatsApp(){
         });
 
         // 3) Guardar la orden en Google Sheets (hoja "Ordenes")
-        const respSheets = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 orden: numOrden,
                 fecha: fechaTexto,
@@ -500,20 +493,6 @@ async function enviarWhatsApp(){
             })
         });
 
-        let dataSheets = null;
-        try {
-            dataSheets = await respSheets.json();
-        } catch (e) {
-            console.error("Error parseando respuesta de Sheets:", e);
-        }
-
-        console.log("Respuesta doPost:", respSheets.status, dataSheets);
-
-        if (!respSheets.ok || !dataSheets || !dataSheets.ok) {
-            alert("El PDF y el mail salieron, pero hubo un problema al guardar la orden en Google Sheets. Revisá la consola.");
-            return;
-        }
-
         alert(`Orden ${numOrden} creada: PDF descargado, enviado a AREA 51 y guardada en Google Sheets.`);
     } catch (err) {
         console.error(err);
@@ -524,4 +503,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
