@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN: AUTO, READONLY -->
+    <!-- NÚMERO DE ORDEN: se completa cuando se envía -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 Apps Script WebApp (exec NUEVO)
+// 👉 PONÉ ACÁ TU URL DEL EXEC DE APPS SCRIPT
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -209,27 +209,19 @@ let opcionesFecha = { year:'numeric', month:'2-digit', day:'2-digit' };
 let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
-// INPUT N° de orden
-const ordenInput = document.getElementById("orden");
-
-// Selects
-const productoSelect = document.getElementById("producto");
-const equipoSelect    = document.getElementById("equipo");
-const modeloSelect    = document.getElementById("modelo");
-const medioPagoSelect = document.getElementById("medioPago");
-
-// 1) Pedir número de orden DIRECTO a Apps Script (doGet)
-function doGet(e) {
-  const orderNumber = getNextOrderNumber(); // ← genera nuevo número
-
-  return ContentService
-    .createTextOutput(JSON.stringify({
-      ok: true,
-      orderNumber: orderNumber
-    }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
+// ELEMENTOS
+const ordenInput         = document.getElementById("orden");
+const nombreInput        = document.getElementById("nombre");
+const telefonoInput      = document.getElementById("telefono");
+const medioPagoSelect    = document.getElementById("medioPago");
+const productoSelect     = document.getElementById("producto");
+const equipoSelect       = document.getElementById("equipo");
+const modeloSelect       = document.getElementById("modelo");
+const problemaSelect     = document.getElementById("problema");
+const detalleTextarea    = document.getElementById("detalle");
+const estadoSelect       = document.getElementById("estado");
+const calcosDiv          = document.getElementById("calcosOpciones");
+const calcosDecisionSelect = document.getElementById("calcosDecision");
 
 // PRODUCTO → EQUIPOS
 function actualizarEquipos() {
@@ -291,15 +283,22 @@ function mostrarModelos(){
 
 // CALCOS
 function mostrarCalcos(){
-    let estado = document.getElementById("estado").value;
-    document.getElementById("calcosOpciones").style.display =
-        estado === "Calcomanías" ? "block" : "none";
+    let estado = estadoSelect.value;
+    calcosDiv.style.display = (estado === "Calcomanías") ? "block" : "none";
 }
 
-/* FIRMA CON TOUCH */
+// FIRMA
 const canvas = document.getElementById("signature-pad");
 const ctx = canvas.getContext("2d");
 let dibujando = false;
+
+function ajustarCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+}
+ajustarCanvas();
+window.addEventListener("resize", ajustarCanvas);
 
 function getPos(e){
     const rect = canvas.getBoundingClientRect();
@@ -329,7 +328,6 @@ canvas.addEventListener("mousemove", e=>{
 canvas.addEventListener("mouseup", ()=> dibujando=false);
 canvas.addEventListener("mouseleave", ()=> dibujando=false);
 
-// TOUCH
 canvas.addEventListener("touchstart", e=>{
     e.preventDefault();
     dibujando = true;
@@ -352,60 +350,103 @@ function limpiarFirma(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-// Resumen para WhatsApp
-function generarResumen(){
+// ============================
+// 1) Crear orden en Sheets
+// ============================
+async function crearOrdenEnSheets() {
+    const body = {
+        fecha: fechaTexto,
+        nombre: nombreInput.value,
+        telefono: telefonoInput.value,
+        medioPago: medioPagoSelect.value || "No especificado",
+        producto: productoSelect.value,
+        equipo: equipoSelect.value,
+        modelo: modeloSelect.value,
+        problema: problemaSelect.value,
+        detalle: detalleTextarea.value,
+        estado: estadoSelect.value,
+        calcosDecision: calcosDecisionSelect.value || "N/A"
+    };
+
+    const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!data || !data.ok || !data.orderNumber) {
+        throw new Error("Respuesta inválida de Apps Script");
+    }
+    return data.orderNumber;
+}
+
+// ============================
+// 2) Texto para WhatsApp
+// ============================
+function generarResumen(numOrden){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
-N° de Orden: ${orden.value}
+N° de Orden: ${numOrden}
 
-Nombre: ${nombre.value}
-Teléfono: ${telefono.value}
+Nombre: ${nombreInput.value}
+Teléfono: ${telefonoInput.value}
 Medio de pago: ${medioPagoSelect.value || "No especificado"}
 
 Producto: ${productoSelect.value}
 Equipo: ${equipoSelect.value} ${modeloSelect.value}
-Problema: ${problema.value}
-Detalle: ${detalle.value}
+Problema: ${problemaSelect.value}
+Detalle: ${detalleTextarea.value}
 
-Estado físico: ${estado.value}
-Calcomanías: ${calcosDecision?.value || "N/A"}
+Estado físico: ${estadoSelect.value}
+Calcomanías: ${calcosDecisionSelect.value || "N/A"}
 
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS
+// ============================
+// 3) WHATSAPP + PDF + EMAIL
+// ============================
 async function enviarWhatsApp(){
-    const resumen = generarResumen();
+    let numOrden;
 
-    // 1) WhatsApp al cliente
-    window.open(
-        `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
-    );
+    try {
+        // 1) Crear orden en Google Sheets y obtener número
+        numOrden = await crearOrdenEnSheets();
+        ordenInput.value = numOrden;
+    } catch (err) {
+        console.error(err);
+        alert("No se pudo generar la orden. Intente de nuevo.");
+        return;
+    }
 
-    // 2) PDF completo con todo + firma
+    // 2) WhatsApp
+    const resumen = generarResumen(numOrden);
+    window.open(`https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`);
+
+    // 3) PDF
     const firma = canvas.toDataURL("image/png");
     const fechaNombre = fechaTexto.replace(/\//g,"-");
-    const numOrden = orden.value || "A51";
 
-    const html = `
+    const htmlPdf = `
         <div style="font-family:Arial, sans-serif; font-size:12px; line-height:1.4;">
             <h2>AREA 51 - Orden de Servicio</h2>
             <p><strong>Fecha:</strong> ${fechaTexto}</p>
             <p><strong>N° de Orden:</strong> ${numOrden}</p>
 
-            <p><strong>Nombre:</strong> ${nombre.value}</p>
-            <p><strong>Teléfono / Contacto:</strong> ${telefono.value}</p>
+            <p><strong>Nombre:</strong> ${nombreInput.value}</p>
+            <p><strong>Teléfono / Contacto:</strong> ${telefonoInput.value}</p>
             <p><strong>Medio de pago:</strong> ${medioPagoSelect.value || "No especificado"}</p>
 
             <p><strong>Producto:</strong> ${productoSelect.value}</p>
             <p><strong>Tipo de equipo:</strong> ${equipoSelect.value}</p>
             <p><strong>Modelo del equipo:</strong> ${modeloSelect.value}</p>
 
-            <p><strong>Problema:</strong> ${problema.value}</p>
-            <p><strong>Descripción del problema:</strong><br>${detalle.value}</p>
+            <p><strong>Problema:</strong> ${problemaSelect.value}</p>
+            <p><strong>Descripción del problema:</strong><br>${detalleTextarea.value}</p>
 
-            <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
-            <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
+            <p><strong>Estado físico del equipo al recibir:</strong> ${estadoSelect.value}</p>
+            <p><strong>Calcomanías:</strong> ${calcosDecisionSelect.value || "N/A"}</p>
 
             <hr>
             <h3>Condiciones del Servicio Técnico</h3>
@@ -436,67 +477,45 @@ async function enviarWhatsApp(){
     };
 
     try {
-        // Generar PDF en base64 para mail
         const dataUri = await html2pdf()
             .set(opt)
-            .from(html)
+            .from(htmlPdf)
             .toPdf()
             .output('datauristring');
 
         const pdfBase64 = dataUri.split(',')[1];
 
-        // 2a) Descargar el PDF en el dispositivo
-        html2pdf().set(opt).from(html).save();
+        // Descargar en el dispositivo
+        html2pdf().set(opt).from(htmlPdf).save();
 
-        // 2b) Enviar al backend (Vercel) para mandar el correo
+        // Enviar a tu backend en Vercel (si lo tenés configurado)
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 orden: numOrden,
-                nombre: nombre.value,
-                telefono: telefono.value,
+                nombre: nombreInput.value,
+                telefono: telefonoInput.value,
                 medioPago: medioPagoSelect.value || "No especificado",
                 producto: productoSelect.value,
                 equipo: equipoSelect.value,
                 modelo: modeloSelect.value,
-                problema: problema.value,
-                detalle: detalle.value,
-                estado: estado.value,
-                calcosDecision: calcosDecision?.value || "N/A",
+                problema: problemaSelect.value,
+                detalle: detalleTextarea.value,
+                estado: estadoSelect.value,
+                calcosDecision: calcosDecisionSelect.value || "N/A",
                 fecha: fechaTexto,
                 pdfBase64
             })
         });
 
-        // 3) Guardar la orden en Google Sheets (Apps Script doPost)
-        await fetch(SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                orden: numOrden,
-                fecha: fechaTexto,
-                nombre: nombre.value,
-                telefono: telefono.value,
-                medioPago: medioPagoSelect.value || "No especificado",
-                equipo: equipoSelect.value,
-                modelo: modeloSelect.value,
-                problema: problema.value,
-                detalle: detalle.value,
-                estado: estado.value,
-                calcosDecision: calcosDecision?.value || "N/A"
-            })
-        });
-
-        alert(`Orden ${numOrden} creada: PDF descargado, enviado a AREA 51 y guardada en Google Sheets.`);
+        alert(`Orden ${numOrden} creada: guardada en Sheets, PDF generado y WhatsApp listo.`);
     } catch (err) {
         console.error(err);
-        alert("Se generó el PDF, pero hubo un error al enviarlo o guardarlo.");
+        alert("Se generó la orden, pero hubo un problema con el PDF o el correo.");
     }
 }
 </script>
 
 </body>
 </html>
-
-
