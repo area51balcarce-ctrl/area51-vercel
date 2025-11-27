@@ -1,59 +1,85 @@
-import nodemailer from "nodemailer";
+const nodemailer = require("nodemailer");
 
-export default async function handler(req, res) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ ok:false, error:"Solo POST permitido" });
-    }
+module.exports = async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, message: "Method not allowed" });
+    return;
+  }
 
-    const data = req.body;
-    const sheetUrl = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
+  const body = req.body || {};
 
-    try {
-        // 1) Guardar en Google Sheets 📄
-        const guardar = await fetch(sheetUrl, {
-            method:"POST",
-            headers:{ "Content-Type":"application/json" },
-            body: JSON.stringify({
-                tipo: "guardarOrden",
-                ...data
-            })
-        });
+  const {
+    orden,
+    nombre,
+    telefono,
+    medioPago,
+    producto,
+    equipo,
+    modelo,
+    problema,
+    detalle,
+    estado,
+    calcosDecision,
+    fecha,
+    pdfBase64,
+  } = body;
 
-        const r = await guardar.json();
-        console.log("Respuesta Google Sheets → ", r);
+  if (!pdfBase64 || !orden) {
+    res
+      .status(400)
+      .json({ ok: false, message: "Falta pdfBase64 u orden en el body" });
+    return;
+  }
 
-        // 2) Enviar Email con PDF 📎
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS
-            }
-        });
+  // Nombre del archivo PDF
+  const fechaNombre = (fecha || "").replace(/\//g, "-") || "sin-fecha";
+  const filename = `Orden_${orden}_${fechaNombre}.pdf`;
 
-        await transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: process.env.MAIL_USER,
-            subject: `Nueva Orden Generada: ${data.orden}`,
-            html: `
-                <h2>📄 Nueva Orden en AREA 51</h2>
-                <p><b>Nombre:</b> ${data.nombre}</p>
-                <p><b>Teléfono:</b> ${data.telefono}</p>
-                <p><b>Equipo:</b> ${data.equipo} ${data.modelo}</p>
-                <p><b>Problema:</b> ${data.problema}</p>
-                <p><b>Fecha:</b> ${data.fecha}</p>
-            `,
-            attachments:[{
-                filename:`Orden_${data.orden}.pdf`,
-                content:data.pdfBase64,
-                encoding:"base64"
-            }]
-        });
+  // Transporter usando Gmail (con APP PASSWORD)
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER, // ej: area51.balcarce@gmail.com
+      pass: process.env.GMAIL_PASS, // APP PASSWORD de Gmail
+    },
+  });
 
-        return res.status(200).json({ ok:true, msg:"Orden guardada y email enviado" });
+  const htmlResumen = `
+    <h2>AREA 51 - Nueva Orden de Servicio</h2>
+    <p><strong>Orden:</strong> ${orden}</p>
+    <p><strong>Fecha:</strong> ${fecha}</p>
+    <p><strong>Nombre:</strong> ${nombre}</p>
+    <p><strong>Teléfono:</strong> ${telefono}</p>
+    <p><strong>Medio de pago:</strong> ${medioPago}</p>
+    <p><strong>Producto:</strong> ${producto}</p>
+    <p><strong>Equipo:</strong> ${equipo}</p>
+    <p><strong>Modelo:</strong> ${modelo}</p>
+    <p><strong>Problema:</strong> ${problema}</p>
+    <p><strong>Detalle:</strong> ${detalle}</p>
+    <p><strong>Estado físico:</strong> ${estado}</p>
+    <p><strong>Calcomanías:</strong> ${calcosDecision}</p>
+    <p>Se adjunta el PDF firmado del cliente.</p>
+  `;
 
-    } catch(err) {
-        console.error(err);
-        return res.status(500).json({ ok:false, error:"Error guardando/Email", detalle:err.message });
-    }
-}
+  const mailOptions = {
+    from: `"AREA 51" <${process.env.GMAIL_USER}>`,
+    to: "area51.balcarce@gmail.com",
+    subject: `Nueva orden ${orden} - ${nombre || ""}`,
+    html: htmlResumen,
+    attachments: [
+      {
+        filename,
+        content: Buffer.from(pdfBase64, "base64"),
+        contentType: "application/pdf",
+      },
+    ],
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Error enviando mail:", err);
+    res.status(500).json({ ok: false, message: "Error enviando mail" });
+  }
+};
