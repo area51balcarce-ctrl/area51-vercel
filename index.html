@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN: se completa cuando se envía -->
+    <!-- NÚMERO DE ORDEN: se completa al cargar la página -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 PONÉ ACÁ TU URL DEL EXEC DE APPS SCRIPT
+// 👉 URL de tu exec de Apps Script
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -210,17 +210,17 @@ let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
 // ELEMENTOS
-const ordenInput         = document.getElementById("orden");
-const nombreInput        = document.getElementById("nombre");
-const telefonoInput      = document.getElementById("telefono");
-const medioPagoSelect    = document.getElementById("medioPago");
-const productoSelect     = document.getElementById("producto");
-const equipoSelect       = document.getElementById("equipo");
-const modeloSelect       = document.getElementById("modelo");
-const problemaSelect     = document.getElementById("problema");
-const detalleTextarea    = document.getElementById("detalle");
-const estadoSelect       = document.getElementById("estado");
-const calcosDiv          = document.getElementById("calcosOpciones");
+const ordenInput           = document.getElementById("orden");
+const nombreInput          = document.getElementById("nombre");
+const telefonoInput        = document.getElementById("telefono");
+const medioPagoSelect      = document.getElementById("medioPago");
+const productoSelect       = document.getElementById("producto");
+const equipoSelect         = document.getElementById("equipo");
+const modeloSelect         = document.getElementById("modelo");
+const problemaSelect       = document.getElementById("problema");
+const detalleTextarea      = document.getElementById("detalle");
+const estadoSelect         = document.getElementById("estado");
+const calcosDiv            = document.getElementById("calcosOpciones");
 const calcosDecisionSelect = document.getElementById("calcosDecision");
 
 // PRODUCTO → EQUIPOS
@@ -351,10 +351,31 @@ function limpiarFirma(){
 }
 
 // ============================
-// 1) Crear orden en Sheets
+// CARGAR NUMERO DE ORDEN AL ENTRAR
 // ============================
-async function crearOrdenEnSheets() {
+async function cargarNumeroOrden() {
+    try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        if (data && data.ok && data.orderNumber) {
+            ordenInput.value = data.orderNumber;
+        } else {
+            console.error("Respuesta rara de Apps Script:", data);
+            ordenInput.value = "A51-ERROR";
+        }
+    } catch (err) {
+        console.error("Error obteniendo número de orden:", err);
+        ordenInput.value = "A51-ERROR";
+    }
+}
+cargarNumeroOrden();
+
+// ============================
+// GUARDAR ORDEN EN SHEETS
+// ============================
+async function guardarOrdenEnSheets() {
     const body = {
+        orden: ordenInput.value,
         fecha: fechaTexto,
         nombre: nombreInput.value,
         telefono: telefonoInput.value,
@@ -374,15 +395,20 @@ async function crearOrdenEnSheets() {
         body: JSON.stringify(body)
     });
 
-    const data = await res.json();
-    if (!data || !data.ok || !data.orderNumber) {
-        throw new Error("Respuesta inválida de Apps Script");
+    // No necesitamos leer nada especial, pero por si acaso:
+    try {
+        const data = await res.json();
+        if (!data.ok) {
+            console.error("Error al guardar en Sheets:", data);
+        }
+    } catch (e) {
+        // Si no se puede parsear, no es crítico
+        console.warn("No se pudo parsear respuesta de doPost", e);
     }
-    return data.orderNumber;
 }
 
 // ============================
-// 2) Texto para WhatsApp
+// TEXTO WHATSAPP
 // ============================
 function generarResumen(numOrden){
     return `AREA 51 - ORDEN DE SERVICIO
@@ -405,18 +431,21 @@ Condiciones aceptadas.`;
 }
 
 // ============================
-// 3) WHATSAPP + PDF + EMAIL
+// ENVIAR WHATSAPP + PDF
 // ============================
 async function enviarWhatsApp(){
-    let numOrden;
+    const numOrden = ordenInput.value;
+    if (!numOrden) {
+        alert("No se pudo obtener el número de orden.");
+        return;
+    }
 
+    // 1) Guardar en Sheets
     try {
-        // 1) Crear orden en Google Sheets y obtener número
-        numOrden = await crearOrdenEnSheets();
-        ordenInput.value = numOrden;
+        await guardarOrdenEnSheets();
     } catch (err) {
         console.error(err);
-        alert("No se pudo generar la orden. Intente de nuevo.");
+        alert("No se pudo guardar la orden en Sheets.");
         return;
     }
 
@@ -488,7 +517,7 @@ async function enviarWhatsApp(){
         // Descargar en el dispositivo
         html2pdf().set(opt).from(htmlPdf).save();
 
-        // Enviar a tu backend en Vercel (si lo tenés configurado)
+        // Si querés seguir usando tu backend para mail:
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
