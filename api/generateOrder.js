@@ -1,92 +1,33 @@
-const { google } = require('googleapis');
+// api/generateOrder.js
+// Proxy entre Vercel y tu Apps Script
 
-const SPREADSHEET_ID = process.env.GS_SPREADSHEET_ID;   // ID de tu Google Sheet
-const COUNTERS_RANGE = 'Counters!A:B';                  // Hoja "Counters", columnas Fecha / Contador
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
 
-function getTodayString() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;   // 2025-11-18
-}
-
-function buildOrderNumber(dateStr, counter) {
-  const [y, m, d] = dateStr.split('-');
-  return `A51-${y}-${m}-${d}-${String(counter).padStart(4, '0')}`;
-}
-
-async function getSheetsClient() {
-  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '{}');
-
-  const jwtClient = new google.auth.JWT(
-    credentials.client_email,
-    null,
-    credentials.private_key,
-    ['https://www.googleapis.com/auth/spreadsheets']
-  );
-
-  await jwtClient.authorize();
-  return google.sheets({ version: 'v4', auth: jwtClient });
-}
-
-module.exports = async (req, res) => {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ ok: false, error: 'Método no permitido' });
-  }
-
+export default async function handler(req, res) {
   try {
-    const sheets = await getSheetsClient();
-    const todayStr = getTodayString();
-
-    // Leer contenido actual de Counters!A:B
-    const readResp = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: COUNTERS_RANGE,
-    });
-
-    const rows = readResp.data.values || [];
-    let rowIndex = -1;
-    let currentCounter = -1;
-
-    // Buscar fila del día de hoy
-    for (let i = 0; i < rows.length; i++) {
-      const rowDate = rows[i][0];
-      if (rowDate === todayStr) {
-        rowIndex = i;
-        currentCounter = rows[i][1] !== undefined ? parseInt(rows[i][1], 10) : -1;
-        break;
-      }
+    if (req.method === "GET") {
+      // FRONT → /api/generateOrder (GET) → Apps Script doGet()
+      const r = await fetch(SCRIPT_URL);
+      const data = await r.json();
+      return res.status(200).json(data);
     }
 
-    let newCounter;
-    if (rowIndex === -1) {
-      // No hay fila para hoy → empezamos en 0 (0000)
-      newCounter = 0;
-      rows.push([todayStr, String(newCounter)]);
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
-        range: COUNTERS_RANGE,
-        valueInputOption: 'RAW',
-        resource: { values: rows },
+    if (req.method === "POST") {
+      // FRONT → /api/generateOrder (POST) → Apps Script doPost()
+      const r = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body || {}),
       });
-    } else {
-      // Hay fila para hoy → incrementamos
-      newCounter = isNaN(currentCounter) ? 0 : currentCounter + 1;
-      rows[rowIndex][1] = String(newCounter);
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
-        range: COUNTERS_RANGE,
-        valueInputOption: 'RAW',
-        resource: { values: rows },
-      });
+
+      const data = await r.json().catch(() => null);
+      return res.status(r.ok ? 200 : 500).json(data || { ok: false });
     }
 
-    const orderNumber = buildOrderNumber(todayStr, newCounter);
-
-    return res.status(200).json({ ok: true, orderNumber });
+    // Cualquier otra cosa: no permitido
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   } catch (err) {
-    console.error('Error en generateOrder:', err);
+    console.error("Error en /api/generateOrder:", err);
     return res.status(500).json({ ok: false, error: err.message });
   }
-};
+}
