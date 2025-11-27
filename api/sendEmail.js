@@ -2,11 +2,13 @@ const nodemailer = require("nodemailer");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
-    res.status(405).json({ ok: false, message: "Method not allowed" });
-    return;
+    return res.status(405).json({ ok: false, message: "Method not allowed" });
   }
 
-  const body = req.body || {};
+  let body = req.body;
+  if (typeof body === "string") {
+    try { body = JSON.parse(body); } catch (e) { body = {}; }
+  }
 
   const {
     orden,
@@ -22,25 +24,22 @@ module.exports = async (req, res) => {
     calcosDecision,
     fecha,
     pdfBase64,
-  } = body;
+  } = body || {};
 
   if (!pdfBase64 || !orden) {
-    res
+    return res
       .status(400)
       .json({ ok: false, message: "Falta pdfBase64 u orden en el body" });
-    return;
   }
 
-  // Nombre del archivo PDF
   const fechaNombre = (fecha || "").replace(/\//g, "-") || "sin-fecha";
   const filename = `Orden_${orden}_${fechaNombre}.pdf`;
 
-  // Transporter usando Gmail (con APP PASSWORD)
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.GMAIL_USER, // ej: area51.balcarce@gmail.com
-      pass: process.env.GMAIL_PASS, // APP PASSWORD de Gmail
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
     },
   });
 
@@ -58,7 +57,7 @@ module.exports = async (req, res) => {
     <p><strong>Detalle:</strong> ${detalle}</p>
     <p><strong>Estado físico:</strong> ${estado}</p>
     <p><strong>Calcomanías:</strong> ${calcosDecision}</p>
-    <p>Se adjunta el PDF firmado del cliente.</p>
+    <p>Se adjunta el PDF firmado.</p>
   `;
 
   const mailOptions = {
@@ -77,9 +76,11 @@ module.exports = async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("Error enviando mail:", err);
-    res.status(500).json({ ok: false, message: "Error enviando mail" });
+    return res
+      .status(500)
+      .json({ ok: false, message: "Error enviando mail en el servidor" });
   }
 };
