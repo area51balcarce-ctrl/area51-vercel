@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// Apps Script WebApp (NUEVO EXEC)
+// 👉 Apps Script WebApp (exec NUEVO)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -218,13 +218,13 @@ const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 1) Pedir número de orden directo a Apps Script (GET)
+// 1) Pedir número de orden DIRECTO a Apps Script (doGet)
 async function cargarNumeroOrden() {
     try {
         const res = await fetch(SCRIPT_URL);
         const data = await res.json();
         if (data && data.ok && data.orderNumber) {
-            ordenInput.value = data.orderNumber;
+            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-27-0005
         } else {
             console.error("Respuesta rara de Apps Script:", data);
             ordenInput.value = "A51-SIN-NUMERO";
@@ -474,7 +474,7 @@ async function enviarWhatsApp(){
             })
         });
 
-        // 3) Guardar la orden en Google Sheets (POST directo a Apps Script)
+        // 3) Guardar la orden en Google Sheets (Apps Script doPost)
         await fetch(SCRIPT_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -503,4 +503,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
