@@ -219,22 +219,17 @@ const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
 // 1) Pedir número de orden DIRECTO a Apps Script (doGet)
-async function cargarNumeroOrden() {
-    try {
-        const res = await fetch(SCRIPT_URL);
-        const data = await res.json();
-        if (data && data.ok && data.orderNumber) {
-            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-27-0005
-        } else {
-            console.error("Respuesta rara de Apps Script:", data);
-            ordenInput.value = "A51-SIN-NUMERO";
-        }
-    } catch (err) {
-        console.error("Error obteniendo número de orden:", err);
-        ordenInput.value = "A51-ERROR";
-    }
+function doGet(e) {
+  const orderNumber = getNextOrderNumber(); // ← genera nuevo número
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      ok: true,
+      orderNumber: orderNumber
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
-cargarNumeroOrden();
+
 
 // PRODUCTO → EQUIPOS
 function actualizarEquipos() {
@@ -503,4 +498,5 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
 
