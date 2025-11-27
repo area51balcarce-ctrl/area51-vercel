@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 URL de tu exec de Apps Script
+// URL de tu exec de Apps Script
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -371,7 +371,7 @@ async function cargarNumeroOrden() {
 cargarNumeroOrden();
 
 // ============================
-// GUARDAR ORDEN EN SHEETS
+// GUARDAR ORDEN EN SHEETS (FIRE & FORGET)
 // ============================
 async function guardarOrdenEnSheets() {
     const body = {
@@ -389,19 +389,19 @@ async function guardarOrdenEnSheets() {
         calcosDecision: calcosDecisionSelect.value || "N/A"
     };
 
-    const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    // Si Apps Script responde 200, lo consideramos OK.
-    if (!res.ok) {
-        throw new Error("Respuesta HTTP no OK: " + res.status);
+    try {
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        // No miramos la respuesta ni lanzamos errores al usuario.
+    } catch (err) {
+        console.error("Error enviando a Sheets:", err);
+        // Tampoco tiramos alert; solo log.
     }
-    // No parseamos JSON, no hace falta.
 }
-
 
 // ============================
 // TEXTO WHATSAPP
@@ -436,14 +436,8 @@ async function enviarWhatsApp(){
         return;
     }
 
-    // 1) Guardar en Sheets
-    try {
-        await guardarOrdenEnSheets();
-    } catch (err) {
-        console.error(err);
-        alert("No se pudo guardar la orden en Sheets.");
-        return;
-    }
+    // 1) Guardar en Sheets (sin bloquear al usuario por errores de CORS)
+    guardarOrdenEnSheets();
 
     // 2) WhatsApp
     const resumen = generarResumen(numOrden);
@@ -513,7 +507,7 @@ async function enviarWhatsApp(){
         // Descargar en el dispositivo
         html2pdf().set(opt).from(htmlPdf).save();
 
-        // Si querés seguir usando tu backend para mail:
+        // Si seguís usando tu backend para mail:
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -534,7 +528,7 @@ async function enviarWhatsApp(){
             })
         });
 
-        alert(`Orden ${numOrden} creada: guardada en Sheets, PDF generado y WhatsApp listo.`);
+        alert(`Orden ${numOrden} creada: guardada en Sheets (si no hubo error de red), PDF generado y WhatsApp listo.`);
     } catch (err) {
         console.error(err);
         alert("Se generó la orden, pero hubo un problema con el PDF o el correo.");
@@ -544,4 +538,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
