@@ -395,17 +395,13 @@ async function guardarOrdenEnSheets() {
         body: JSON.stringify(body)
     });
 
-    // No necesitamos leer nada especial, pero por si acaso:
-    try {
-        const data = await res.json();
-        if (!data.ok) {
-            console.error("Error al guardar en Sheets:", data);
-        }
-    } catch (e) {
-        // Si no se puede parsear, no es crítico
-        console.warn("No se pudo parsear respuesta de doPost", e);
+    // Si Apps Script responde 200, lo consideramos OK.
+    if (!res.ok) {
+        throw new Error("Respuesta HTTP no OK: " + res.status);
     }
+    // No parseamos JSON, no hace falta.
 }
+
 
 // ============================
 // TEXTO WHATSAPP
@@ -548,3 +544,4 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
