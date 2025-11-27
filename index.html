@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN: AUTO DESDE APPS SCRIPT (READONLY) -->
+    <!-- NÚMERO DE ORDEN: AUTO, READONLY -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,8 +199,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 🔗 SOLO Apps Script: WebApp que genera número y guarda en Sheets
+// URL del WebApp de Apps Script (por si la necesitás directo)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
+
+// NUEVO: endpoint en tu Vercel que hace de proxy a Apps Script
+const ORDER_API_URL = "/api/generateOrder";
 
 // FECHA
 const fechaDiv = document.getElementById("fecha");
@@ -218,19 +221,19 @@ const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 1) Pedir número de orden a Apps Script (doGet)
+// 1) Pedir número de orden a TU BACKEND (/api/generateOrder → Apps Script)
 async function cargarNumeroOrden() {
     try {
-        const res = await fetch(SCRIPT_URL);
+        const res = await fetch(ORDER_API_URL);
         const data = await res.json();
-        if (data.ok && data.orderNumber) {
+        if (data && data.orderNumber) {
             ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-26-0004
         } else {
-            console.error("Respuesta rara de Apps Script:", data);
+            console.error("Respuesta rara de generateOrder:", data);
             ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
-        console.error("Error obteniendo número de orden desde Apps Script:", err);
+        console.error("Error obteniendo número de orden:", err);
         ordenInput.value = "A51-ERROR";
     }
 }
@@ -378,7 +381,7 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS
+// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS (vía backend)
 async function enviarWhatsApp(){
     const resumen = generarResumen();
 
@@ -411,24 +414,6 @@ async function enviarWhatsApp(){
 
             <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
             <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
-
-            <hr>
-            <h3>Condiciones del Servicio Técnico</h3>
-            <ol style="padding-left:18px;">
-                <li>El equipo se recibe para diagnóstico. Se notificará el costo total antes de proceder.</li>
-                <li>AREA 51 no se hace responsable por fallas preexistentes o no reportadas.</li>
-                <li>Plazo de 30 días para retirar el equipo una vez finalizado el trabajo.</li>
-                <li>Equipos con daños por líquidos/golpes/manipulación previa sin garantía de éxito.</li>
-                <li>La limpieza incluye remoción de polvo y cambio de pasta térmica cuando corresponda.</li>
-                <li>Repuestos con garantía solo por defectos de fábrica.</li>
-                <li>Los datos/partidas guardadas son responsabilidad del cliente.</li>
-                <li>Se notificará si faltan accesorios necesarios para pruebas.</li>
-                <li>Los plazos de reparación son estimados.</li>
-                <li>Con la firma, el cliente acepta estas condiciones.</li>
-            </ol>
-
-            <p><strong>Firma del cliente:</strong></p>
-            <img src="${firma}" style="max-width:300px; border:1px solid #000;" />
         </div>
     `;
 
@@ -474,8 +459,8 @@ async function enviarWhatsApp(){
             })
         });
 
-        // 3) Guardar la orden en Google Sheets (hoja "Ordenes")
-        await fetch(SCRIPT_URL, {
+        // 3) Guardar la orden en Google Sheets (vía /api/generateOrder → Apps Script)
+        await fetch(ORDER_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
