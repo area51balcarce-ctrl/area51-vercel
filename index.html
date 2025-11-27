@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// ✅ URL ÚNICA de tu Apps Script (GET = número, POST = guardar orden)
+// Apps Script WebApp (NUEVO EXEC)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -218,13 +218,13 @@ const equipoSelect    = document.getElementById("equipo");
 const modeloSelect    = document.getElementById("modelo");
 const medioPagoSelect = document.getElementById("medioPago");
 
-// 1) Pedir número de orden DIRECTO a Apps Script (doGet)
+// 1) Pedir número de orden directo a Apps Script (GET)
 async function cargarNumeroOrden() {
     try {
         const res = await fetch(SCRIPT_URL);
         const data = await res.json();
-        if (data && data.orderNumber) {
-            ordenInput.value = data.orderNumber;  // Ej: A51-2025-11-27-0005
+        if (data && data.ok && data.orderNumber) {
+            ordenInput.value = data.orderNumber;
         } else {
             console.error("Respuesta rara de Apps Script:", data);
             ordenInput.value = "A51-SIN-NUMERO";
@@ -378,7 +378,7 @@ Calcomanías: ${calcosDecision?.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
-// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS (directo a Apps Script)
+// WHATSAPP + PDF + EMAIL + GUARDAR EN GOOGLE SHEETS
 async function enviarWhatsApp(){
     const resumen = generarResumen();
 
@@ -411,6 +411,24 @@ async function enviarWhatsApp(){
 
             <p><strong>Estado físico del equipo al recibir:</strong> ${estado.value}</p>
             <p><strong>Calcomanías:</strong> ${calcosDecision?.value || "N/A"}</p>
+
+            <hr>
+            <h3>Condiciones del Servicio Técnico</h3>
+            <ol style="padding-left:18px;">
+                <li>El equipo se recibe para diagnóstico. Se notificará el costo total antes de proceder.</li>
+                <li>AREA 51 no se hace responsable por fallas preexistentes o no reportadas.</li>
+                <li>Plazo de 30 días para retirar el equipo una vez finalizado el trabajo.</li>
+                <li>Equipos con daños por líquidos/golpes/manipulación previa sin garantía de éxito.</li>
+                <li>La limpieza incluye remoción de polvo y cambio de pasta térmica cuando corresponda.</li>
+                <li>Repuestos con garantía solo por defectos de fábrica.</li>
+                <li>Los datos/partidas guardadas son responsabilidad del cliente.</li>
+                <li>Se notificará si faltan accesorios necesarios para pruebas.</li>
+                <li>Los plazos de reparación son estimados.</li>
+                <li>Con la firma, el cliente acepta estas condiciones.</li>
+            </ol>
+
+            <p><strong>Firma del cliente:</strong></p>
+            <img src="${firma}" style="max-width:300px; border:1px solid #000;" />
         </div>
     `;
 
@@ -435,7 +453,7 @@ async function enviarWhatsApp(){
         // 2a) Descargar el PDF en el dispositivo
         html2pdf().set(opt).from(html).save();
 
-        // 2b) Enviar al backend (Vercel) para mandar el correo (esto ya lo tenías OK)
+        // 2b) Enviar al backend (Vercel) para mandar el correo
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -456,7 +474,7 @@ async function enviarWhatsApp(){
             })
         });
 
-        // 3) Guardar la orden en Google Sheets DIRECTO a Apps Script (doPost)
+        // 3) Guardar la orden en Google Sheets (POST directo a Apps Script)
         await fetch(SCRIPT_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
