@@ -9,8 +9,20 @@ export default async function handler(req, res) {
     // GET → solo pedir número de orden nuevo
     if (req.method === "GET") {
       const r = await fetch(SCRIPT_URL);
-      const data = await r.json();
-      return res.status(200).json(data);
+      const text = await r.text();
+
+      // Intentar parsear JSON; si falla, devolver error con el HTML
+      try {
+        const data = JSON.parse(text);
+        return res.status(200).json(data);
+      } catch (e) {
+        console.error("Respuesta NO JSON desde Apps Script:", text);
+        return res.status(500).json({
+          ok: false,
+          error: "Apps Script no devolvió JSON",
+          raw: text,
+        });
+      }
     }
 
     // POST → guardar datos de la orden en Sheets
@@ -21,14 +33,18 @@ export default async function handler(req, res) {
         body: JSON.stringify(req.body || {}),
       });
 
-      let data = null;
+      const text = await r.text();
       try {
-        data = await r.json();
+        const data = JSON.parse(text);
+        return res.status(r.ok ? 200 : 500).json(data);
       } catch (e) {
-        data = null;
+        console.error("Respuesta NO JSON desde Apps Script (POST):", text);
+        return res.status(500).json({
+          ok: false,
+          error: "Apps Script no devolvió JSON en POST",
+          raw: text,
+        });
       }
-
-      return res.status(r.ok ? 200 : 500).json(data || { ok: false });
     }
 
     // Cualquier otro método
