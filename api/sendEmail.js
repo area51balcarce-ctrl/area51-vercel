@@ -1,13 +1,19 @@
 const nodemailer = require("nodemailer");
 
 module.exports = async (req, res) => {
+  // Solo aceptar POST
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, message: "Method not allowed" });
   }
 
+  // Asegurarnos de tener el body como objeto
   let body = req.body;
   if (typeof body === "string") {
-    try { body = JSON.parse(body); } catch (e) { body = {}; }
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      body = {};
+    }
   }
 
   const {
@@ -26,6 +32,7 @@ module.exports = async (req, res) => {
     pdfBase64,
   } = body || {};
 
+  // Validación básica
   if (!pdfBase64 || !orden) {
     return res
       .status(400)
@@ -35,11 +42,12 @@ module.exports = async (req, res) => {
   const fechaNombre = (fecha || "").replace(/\//g, "-") || "sin-fecha";
   const filename = `Orden_${orden}_${fechaNombre}.pdf`;
 
+  // Transporter usando Gmail + variables de entorno
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS,
+      user: process.env.GMAIL_USER, // area51.balcarce@gmail.com
+      pass: process.env.GMAIL_PASS, // aply rqwb plsj kkvg (en Vercel, NO acá)
     },
   });
 
@@ -57,7 +65,7 @@ module.exports = async (req, res) => {
     <p><strong>Detalle:</strong> ${detalle}</p>
     <p><strong>Estado físico:</strong> ${estado}</p>
     <p><strong>Calcomanías:</strong> ${calcosDecision}</p>
-    <p>Se adjunta el PDF firmado.</p>
+    <p>Se adjunta el PDF firmado del cliente.</p>
   `;
 
   const mailOptions = {
