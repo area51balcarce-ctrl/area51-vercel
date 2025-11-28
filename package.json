@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "resend": "latest",
-    "googleapis": "^118.0.0"
+    "googleapis": "^118.0.0",
+    "nodemailer": "^6.9.0"
   }
 }
