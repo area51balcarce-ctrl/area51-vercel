@@ -371,9 +371,10 @@ async function cargarNumeroOrden() {
 cargarNumeroOrden();
 
 // ============================
-// GUARDAR ORDEN EN SHEETS (FIRE & FORGET)
-// ============================
-async function guardarOrdenEnSheets() {
+// ---------------------
+// Guardar datos en Google Sheets
+// ---------------------
+async function guardarOrdenEnSheets() {   // <-- acá estaba el error, ahora está OK
     const body = {
         orden: ordenInput.value,
         fecha: fechaTexto,
@@ -396,12 +397,13 @@ async function guardarOrdenEnSheets() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
-        // No miramos la respuesta ni lanzamos errores al usuario.
+
+        console.log("📌 Orden enviada correctamente a Google Sheets");
     } catch (err) {
-        console.error("Error enviando a Sheets:", err);
-        // Tampoco tiramos alert; solo log.
+        console.error("❌ Error al enviar datos a Sheets:", err);
     }
 }
+
 
 // ============================
 // TEXTO WHATSAPP
