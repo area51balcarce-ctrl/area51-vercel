@@ -374,7 +374,7 @@ cargarNumeroOrden();
 // ---------------------
 // Guardar datos en Google Sheets
 // ---------------------
-async function guardarOrdenEnSheets() {   // <-- acá estaba el error, ahora está OK
+async function guardarOrdenEnSheets() {
     const body = {
         orden: ordenInput.value,
         fecha: fechaTexto,
@@ -390,20 +390,22 @@ async function guardarOrdenEnSheets() {   // <-- acá estaba el error, ahora est
         calcosDecision: calcosDecisionSelect.value || "N/A"
     };
 
+    console.log("Enviando a Apps Script:", body);
+
     try {
-        await fetch(SCRIPT_URL, {
+        const resp = await fetch(SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
-        console.log("📌 Orden enviada correctamente a Google Sheets");
+        console.log("Respuesta de Apps Script (status):", resp.status);
+        // No hace falta leer el body, con que llegue ya se guarda la fila.
     } catch (err) {
-        console.error("❌ Error al enviar datos a Sheets:", err);
+        console.error("ERROR al enviar datos a Sheets:", err);
+        alert("Error al guardar la orden en Google Sheets. Revisá la consola (F12).");
     }
 }
-
 
 // ============================
 // TEXTO WHATSAPP
@@ -540,6 +542,7 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
 
 
 
