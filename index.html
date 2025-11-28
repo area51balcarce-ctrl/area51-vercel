@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN -->
+    <!-- NÚMERO DE ORDEN: se completa automáticamente -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 URL del Web App de Apps Script
+// 👉 URL del WebApp de Apps Script (EXEC)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -350,7 +350,9 @@ function limpiarFirma(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-// ============== NUMERO DE ORDEN (PREVIEW) =================
+// ============================
+// NÚMERO DE ORDEN DESDE Apps Script (GET)
+// ============================
 async function cargarNumeroOrden() {
     try {
         const res = await fetch(SCRIPT_URL);
@@ -358,15 +360,18 @@ async function cargarNumeroOrden() {
         if (data && data.ok && data.orderNumber) {
             ordenInput.value = data.orderNumber;
         } else {
-            ordenInput.value = "A51-ERROR";
+            ordenInput.value = "A51-SIN-NUMERO";
         }
     } catch (err) {
+        console.error(err);
         ordenInput.value = "A51-ERROR";
     }
 }
 cargarNumeroOrden();
 
-// ============== GUARDA LA ORDEN EN SHEETS =================
+// ============================
+// GUARDAR ORDEN EN SHEETS  ✅
+// ============================
 async function guardarOrdenEnSheets() {
     const body = {
         orden: ordenInput.value,
@@ -390,7 +395,9 @@ async function guardarOrdenEnSheets() {
     });
 }
 
-// ============== WHATSAPP + PDF + EMAIL ====================
+// ============================
+// TEXTO WHATSAPP
+// ============================
 function generarResumen(numOrden){
     return `AREA 51 - ORDEN DE SERVICIO
 Fecha: ${fechaTexto}
@@ -411,17 +418,24 @@ Calcomanías: ${calcosDecisionSelect.value || "N/A"}
 Condiciones aceptadas.`;
 }
 
+// ============================
+// WHATSAPP + PDF + EMAIL
+// ============================
 async function enviarWhatsApp(){
     const numOrden = ordenInput.value || "A51";
 
-    // 1) Guardar en Sheets
-    await guardarOrdenEnSheets();
+    try {
+        // 1) Guardar en Google Sheets
+        await guardarOrdenEnSheets();
+    } catch (err) {
+        console.error("Error guardando en Sheets:", err);
+        alert("Hubo un problema guardando la orden en Sheets.");
+        return;
+    }
 
     // 2) WhatsApp
     const resumen = generarResumen(numOrden);
-    window.open(
-        `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
-    );
+    window.open(`https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`);
 
     // 3) PDF
     const firma = canvas.toDataURL("image/png");
@@ -487,7 +501,7 @@ async function enviarWhatsApp(){
         // Descargar en el dispositivo
         html2pdf().set(opt).from(htmlPdf).save();
 
-        // Enviar a tu backend en Vercel
+        // Enviar a tu backend en Vercel (si lo tenés configurado)
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
