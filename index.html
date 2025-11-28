@@ -389,13 +389,12 @@ async function guardarOrdenEnSheets() {
         calcosDecision: calcosDecisionSelect.value || "N/A"
     };
 
-    try {
-        await fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
+    await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+}
         // No miramos la respuesta ni lanzamos errores al usuario.
     } catch (err) {
         console.error("Error enviando a Sheets:", err);
@@ -538,6 +537,7 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
 
 
 
