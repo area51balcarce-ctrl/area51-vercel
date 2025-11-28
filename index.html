@@ -391,9 +391,10 @@ async function guardarOrdenEnSheets() {
 
     try {
         await fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
         });
         // No miramos la respuesta ni lanzamos errores al usuario.
     } catch (err) {
