@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN: se completa al cargar la página -->
+    <!-- NÚMERO DE ORDEN: se completa automáticamente -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// URL de tu exec de Apps Script
+// URL del WebApp de Apps Script (EXEC)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -210,20 +210,42 @@ let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
 // ELEMENTOS
-const ordenInput           = document.getElementById("orden");
-const nombreInput          = document.getElementById("nombre");
-const telefonoInput        = document.getElementById("telefono");
-const medioPagoSelect      = document.getElementById("medioPago");
-const productoSelect       = document.getElementById("producto");
-const equipoSelect         = document.getElementById("equipo");
-const modeloSelect         = document.getElementById("modelo");
-const problemaSelect       = document.getElementById("problema");
-const detalleTextarea      = document.getElementById("detalle");
-const estadoSelect         = document.getElementById("estado");
-const calcosDiv            = document.getElementById("calcosOpciones");
+const ordenInput         = document.getElementById("orden");
+const nombreInput        = document.getElementById("nombre");
+const telefonoInput      = document.getElementById("telefono");
+const medioPagoSelect    = document.getElementById("medioPago");
+const productoSelect     = document.getElementById("producto");
+const equipoSelect       = document.getElementById("equipo");
+const modeloSelect       = document.getElementById("modelo");
+const problemaSelect     = document.getElementById("problema");
+const detalleTextarea    = document.getElementById("detalle");
+const estadoSelect       = document.getElementById("estado");
+const calcosDiv          = document.getElementById("calcosOpciones");
 const calcosDecisionSelect = document.getElementById("calcosDecision");
 
+// ============================
+// CARGAR NÚMERO DE ORDEN (preview desde Apps Script)
+// ============================
+async function cargarNumeroOrden() {
+    try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        if (data && data.ok && data.orderNumber) {
+            ordenInput.value = data.orderNumber;
+        } else {
+            console.error("Respuesta inesperada de Apps Script:", data);
+            ordenInput.value = "A51-ERROR";
+        }
+    } catch (err) {
+        console.error("Error obteniendo número de orden:", err);
+        ordenInput.value = "A51-ERROR";
+    }
+}
+window.addEventListener("DOMContentLoaded", cargarNumeroOrden);
+
+// ============================
 // PRODUCTO → EQUIPOS
+// ============================
 function actualizarEquipos() {
     const producto = productoSelect.value;
     equipoSelect.innerHTML = "<option value=''>Seleccionar...</option>";
@@ -287,7 +309,9 @@ function mostrarCalcos(){
     calcosDiv.style.display = (estado === "Calcomanías") ? "block" : "none";
 }
 
+// ============================
 // FIRMA
+// ============================
 const canvas = document.getElementById("signature-pad");
 const ctx = canvas.getContext("2d");
 let dibujando = false;
@@ -351,31 +375,10 @@ function limpiarFirma(){
 }
 
 // ============================
-// CARGAR NUMERO DE ORDEN AL ENTRAR
-// ============================
-async function cargarNumeroOrden() {
-    try {
-        const res = await fetch(SCRIPT_URL);
-        const data = await res.json();
-        if (data && data.ok && data.orderNumber) {
-            ordenInput.value = data.orderNumber;
-        } else {
-            console.error("Respuesta rara de Apps Script:", data);
-            ordenInput.value = "A51-ERROR";
-        }
-    } catch (err) {
-        console.error("Error obteniendo número de orden:", err);
-        ordenInput.value = "A51-ERROR";
-    }
-}
-cargarNumeroOrden();
-
-// ============================
-// GUARDAR ORDEN EN SHEETS (FIRE & FORGET)
+// GUARDAR ORDEN EN SHEETS (doPost Apps Script)
 // ============================
 async function guardarOrdenEnSheets() {
     const body = {
-        orden: ordenInput.value,
         fecha: fechaTexto,
         nombre: nombreInput.value,
         telefono: telefonoInput.value,
@@ -392,19 +395,17 @@ async function guardarOrdenEnSheets() {
     try {
         await fetch(SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            mode: "no-cors"
         });
-        // No miramos la respuesta ni lanzamos errores al usuario.
     } catch (err) {
-        console.error("Error enviando a Sheets:", err);
-        // Tampoco tiramos alert; solo log.
+        console.error("Error al guardar en Sheets:", err);
     }
 }
 
 // ============================
-// TEXTO WHATSAPP
+// TEXTO PARA WHATSAPP
 // ============================
 function generarResumen(numOrden){
     return `AREA 51 - ORDEN DE SERVICIO
@@ -427,21 +428,19 @@ Condiciones aceptadas.`;
 }
 
 // ============================
-// ENVIAR WHATSAPP + PDF
+// WHATSAPP + PDF + EMAIL
 // ============================
 async function enviarWhatsApp(){
-    const numOrden = ordenInput.value;
-    if (!numOrden) {
-        alert("No se pudo obtener el número de orden.");
-        return;
-    }
+    const numOrden = ordenInput.value || "A51-SIN-ORDEN";
 
-    // 1) Guardar en Sheets (sin bloquear al usuario por errores de CORS)
-    guardarOrdenEnSheets();
+    // 1) Guardar en Google Sheets (Apps Script)
+    guardarOrdenEnSheets(); // no esperamos respuesta
 
     // 2) WhatsApp
     const resumen = generarResumen(numOrden);
-    window.open(`https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`);
+    window.open(
+        `https://wa.me/5492266464931?text=${encodeURIComponent(resumen)}`
+    );
 
     // 3) PDF
     const firma = canvas.toDataURL("image/png");
@@ -507,7 +506,7 @@ async function enviarWhatsApp(){
         // Descargar en el dispositivo
         html2pdf().set(opt).from(htmlPdf).save();
 
-        // Si seguís usando tu backend para mail:
+        // Enviar a tu backend en Vercel
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -538,15 +537,3 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
