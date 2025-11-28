@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- NÚMERO DE ORDEN: se completa automáticamente -->
+    <!-- NÚMERO DE ORDEN: se completa al cargar la página -->
     <label>Número de Orden</label>
     <input id="orden" type="text" readonly />
 
@@ -199,7 +199,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script>
-// 👉 URL del WebApp de Apps Script (EXEC)
+// URL de tu exec de Apps Script
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAByWsvzMeubBaCkv_DhC--8R7odKi0qEdN_syO1lPWbeW4yNsnAwOJxk6goWDp9lX/exec";
 
 // FECHA
@@ -210,17 +210,17 @@ let fechaTexto = hoy.toLocaleDateString('es-AR', opcionesFecha);
 fechaDiv.innerText = "Fecha: " + fechaTexto;
 
 // ELEMENTOS
-const ordenInput         = document.getElementById("orden");
-const nombreInput        = document.getElementById("nombre");
-const telefonoInput      = document.getElementById("telefono");
-const medioPagoSelect    = document.getElementById("medioPago");
-const productoSelect     = document.getElementById("producto");
-const equipoSelect       = document.getElementById("equipo");
-const modeloSelect       = document.getElementById("modelo");
-const problemaSelect     = document.getElementById("problema");
-const detalleTextarea    = document.getElementById("detalle");
-const estadoSelect       = document.getElementById("estado");
-const calcosDiv          = document.getElementById("calcosOpciones");
+const ordenInput           = document.getElementById("orden");
+const nombreInput          = document.getElementById("nombre");
+const telefonoInput        = document.getElementById("telefono");
+const medioPagoSelect      = document.getElementById("medioPago");
+const productoSelect       = document.getElementById("producto");
+const equipoSelect         = document.getElementById("equipo");
+const modeloSelect         = document.getElementById("modelo");
+const problemaSelect       = document.getElementById("problema");
+const detalleTextarea      = document.getElementById("detalle");
+const estadoSelect         = document.getElementById("estado");
+const calcosDiv            = document.getElementById("calcosOpciones");
 const calcosDecisionSelect = document.getElementById("calcosDecision");
 
 // PRODUCTO → EQUIPOS
@@ -351,7 +351,7 @@ function limpiarFirma(){
 }
 
 // ============================
-// NÚMERO DE ORDEN DESDE Apps Script (GET)
+// CARGAR NUMERO DE ORDEN AL ENTRAR
 // ============================
 async function cargarNumeroOrden() {
     try {
@@ -360,17 +360,18 @@ async function cargarNumeroOrden() {
         if (data && data.ok && data.orderNumber) {
             ordenInput.value = data.orderNumber;
         } else {
-            ordenInput.value = "A51-SIN-NUMERO";
+            console.error("Respuesta rara de Apps Script:", data);
+            ordenInput.value = "A51-ERROR";
         }
     } catch (err) {
-        console.error(err);
+        console.error("Error obteniendo número de orden:", err);
         ordenInput.value = "A51-ERROR";
     }
 }
 cargarNumeroOrden();
 
 // ============================
-// GUARDAR ORDEN EN SHEETS  ✅
+// GUARDAR ORDEN EN SHEETS (FIRE & FORGET)
 // ============================
 async function guardarOrdenEnSheets() {
     const body = {
@@ -388,11 +389,18 @@ async function guardarOrdenEnSheets() {
         calcosDecision: calcosDecisionSelect.value || "N/A"
     };
 
-    await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
+    try {
+        await fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        // No miramos la respuesta ni lanzamos errores al usuario.
+    } catch (err) {
+        console.error("Error enviando a Sheets:", err);
+        // Tampoco tiramos alert; solo log.
+    }
 }
 
 // ============================
@@ -419,19 +427,17 @@ Condiciones aceptadas.`;
 }
 
 // ============================
-// WHATSAPP + PDF + EMAIL
+// ENVIAR WHATSAPP + PDF
 // ============================
 async function enviarWhatsApp(){
-    const numOrden = ordenInput.value || "A51";
-
-    try {
-        // 1) Guardar en Google Sheets
-        await guardarOrdenEnSheets();
-    } catch (err) {
-        console.error("Error guardando en Sheets:", err);
-        alert("Hubo un problema guardando la orden en Sheets.");
+    const numOrden = ordenInput.value;
+    if (!numOrden) {
+        alert("No se pudo obtener el número de orden.");
         return;
     }
+
+    // 1) Guardar en Sheets (sin bloquear al usuario por errores de CORS)
+    guardarOrdenEnSheets();
 
     // 2) WhatsApp
     const resumen = generarResumen(numOrden);
@@ -501,7 +507,7 @@ async function enviarWhatsApp(){
         // Descargar en el dispositivo
         html2pdf().set(opt).from(htmlPdf).save();
 
-        // Enviar a tu backend en Vercel (si lo tenés configurado)
+        // Si seguís usando tu backend para mail:
         await fetch("/api/sendEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -522,7 +528,7 @@ async function enviarWhatsApp(){
             })
         });
 
-        alert(`Orden ${numOrden} creada: guardada en Sheets, PDF generado y WhatsApp listo.`);
+        alert(`Orden ${numOrden} creada: guardada en Sheets (si no hubo error de red), PDF generado y WhatsApp listo.`);
     } catch (err) {
         console.error(err);
         alert("Se generó la orden, pero hubo un problema con el PDF o el correo.");
@@ -532,3 +538,15 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
