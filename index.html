@@ -371,9 +371,8 @@ async function cargarNumeroOrden() {
 cargarNumeroOrden();
 
 // ============================
-// ---------------------
-// Guardar datos en Google Sheets
-// ---------------------
+// GUARDAR ORDEN EN SHEETS (FIRE & FORGET)
+// ============================
 async function guardarOrdenEnSheets() {
     const body = {
         orden: ordenInput.value,
@@ -390,20 +389,17 @@ async function guardarOrdenEnSheets() {
         calcosDecision: calcosDecisionSelect.value || "N/A"
     };
 
-    console.log("Enviando a Apps Script:", body);
-
     try {
-        const resp = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
             method: "POST",
+            mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
-
-        console.log("Respuesta de Apps Script (status):", resp.status);
-        // No hace falta leer el body, con que llegue ya se guarda la fila.
+        // No miramos la respuesta ni lanzamos errores al usuario.
     } catch (err) {
-        console.error("ERROR al enviar datos a Sheets:", err);
-        alert("Error al guardar la orden en Google Sheets. Revisá la consola (F12).");
+        console.error("Error enviando a Sheets:", err);
+        // Tampoco tiramos alert; solo log.
     }
 }
 
@@ -542,8 +538,6 @@ async function enviarWhatsApp(){
 
 </body>
 </html>
-
-
 
 
 
