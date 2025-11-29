@@ -86,17 +86,16 @@ module.exports = async (req, res) => {
     // 1) Enviar el mail como siempre
     await transporter.sendMail(mailOptions);
 
-    // 2) Después de enviar el mail, guardar la orden en Sheets via Apps Script
+    // 2) Después de enviar el mail, guardar la orden en Sheets usando tu WebApp
     const SCRIPT_URL =
       process.env.SCRIPT_URL ||
       "https://script.google.com/macros/s/AKfycbyl5OTqorFGvvelnZuYHjO19wh9Cpga8WeppGNCPiuimZ8gUWWHw1zPY2ubbpOWNjRDXA/exec";
 
     try {
-      await fetch(SCRIPT_URL, {
+      const resp = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Mandamos solo lo que tu Apps Script necesita para A..J
           orden,
           fecha,
           nombre,
@@ -106,14 +105,18 @@ module.exports = async (req, res) => {
           problema,
           detalle,
           estado,
-          calcosDecision,
+          calcosDecision
         }),
       });
+
+      const text = await resp.text();
+      console.log("Respuesta de Sheets:", resp.status, text);
     } catch (sheetErr) {
       console.error("Error enviando datos a Sheets:", sheetErr);
-      // No rompemos el flujo si falla Sheets, el mail ya salió
+      // No corto el flujo: el mail ya se envió
     }
 
+    // 3) Respuesta HTTP al front
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("Error enviando mail:", err);
@@ -122,3 +125,5 @@ module.exports = async (req, res) => {
       .json({ ok: false, message: "Error enviando mail en el servidor" });
   }
 };
+
+
