@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
     service: "gmail",
     auth: {
       user: process.env.GMAIL_USER, // area51.balcarce@gmail.com
-      pass: process.env.GMAIL_PASS, // en Vercel, NO en código
+      pass: process.env.GMAIL_PASS, // aply rqwb plsj kkvg (en Vercel, NO acá)
     },
   });
 
@@ -83,40 +83,7 @@ module.exports = async (req, res) => {
   };
 
   try {
-    // 1) Enviar el mail como siempre
     await transporter.sendMail(mailOptions);
-
-    // 2) Después de enviar el mail, guardar la orden en Sheets usando tu WebApp
-    const SCRIPT_URL =
-      process.env.SCRIPT_URL ||
-      "https://script.google.com/macros/s/AKfycbwtLCKoaMMRdradoAmuOFJ60BfCTHN2OMZpHtYUd5cf39YNdE_U9B8hUXjogIGp9DnPLg/exec";
-
-    try {
-      const resp = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orden,
-          fecha,
-          nombre,
-          telefono,
-          equipo,
-          modelo,
-          problema,
-          detalle,
-          estado,
-          calcosDecision
-        }),
-      });
-
-      const text = await resp.text();
-      console.log("Respuesta de Sheets:", resp.status, text);
-    } catch (sheetErr) {
-      console.error("Error enviando datos a Sheets:", sheetErr);
-      // No corto el flujo: el mail ya se envió
-    }
-
-    // 3) Respuesta HTTP al front
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("Error enviando mail:", err);
@@ -125,7 +92,3 @@ module.exports = async (req, res) => {
       .json({ ok: false, message: "Error enviando mail en el servidor" });
   }
 };
-
-
-
-
