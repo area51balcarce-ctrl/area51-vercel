@@ -89,7 +89,7 @@ module.exports = async (req, res) => {
     // 2) Después de enviar el mail, guardar la orden en Sheets usando tu WebApp
     const SCRIPT_URL =
       process.env.SCRIPT_URL ||
-      "https://script.google.com/macros/s/AKfycbwrr-VgWSZ1nGNspvUFhyOUU6OIwmmT5VCb7zNqWWdvB3I9V7V4J934XSeQNae2P3b4jQ/exec";
+      "https://script.google.com/macros/s/AKfycbwtLCKoaMMRdradoAmuOFJ60BfCTHN2OMZpHtYUd5cf39YNdE_U9B8hUXjogIGp9DnPLg/exec";
 
     try {
       const resp = await fetch(SCRIPT_URL, {
@@ -125,6 +125,7 @@ module.exports = async (req, res) => {
       .json({ ok: false, message: "Error enviando mail en el servidor" });
   }
 };
+
 
 
 
