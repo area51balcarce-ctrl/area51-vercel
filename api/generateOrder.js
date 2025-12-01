@@ -2,7 +2,7 @@
 // Proxy muy simple entre Vercel y tu Apps Script
 
 const SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwp03HlgzlSlR08wXLwQipQanXIJ3nN8qFXvIo-BzAAODipU4ed07MLLr7rh8S4f-G5/exec";
+  "https://script.google.com/macros/s/AKfycbwtLCKoaMMRdradoAmuOFJ60BfCTHN2OMZpHtYUd5cf39YNdE_U9B8hUXjogIGp9DnPLg/exec";
 
 export default async function handler(req, res) {
   try {
